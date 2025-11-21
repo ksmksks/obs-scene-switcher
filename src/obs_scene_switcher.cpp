@@ -6,6 +6,7 @@
 #include "ui/plugin_properties.h"
 #include "ui/plugin_dock.hpp"
 #include "obs/config_manager.hpp"
+#include "oauth/http_server.hpp"
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -82,6 +83,16 @@ void ObsSceneSwitcher::handleOAuthCallback(const std::string &code)
 {
 	blog(LOG_INFO, "[OAuth] Received code: %s", code.c_str());
 
+	if (!oauth_) {
+		blog(LOG_ERROR, "[OAuth] oauth object missing");
+		return;
+	}
+
+	if (!oauth_->exchangeCodeForToken(code)) {
+		blog(LOG_ERROR, "[OAuth] Failed to exchange token");
+		return;
+	}
+
 	// 結果を読み取る
 	accessToken_ = oauth_->getAccessToken();
 	refreshToken_ = oauth_->getRefreshToken();
@@ -92,14 +103,25 @@ void ObsSceneSwitcher::handleOAuthCallback(const std::string &code)
 	saveConfig();
 
 	blog(LOG_INFO, "[OAuth] Authentication success!");
+
+	emit authenticationSucceeded();
+
+	// EventSubもついでに接続開始可能
+	connectEventSub();
 }
 
 void ObsSceneSwitcher::startOAuthLogin()
 {
 	blog(LOG_INFO, "[SceneSwitcher] startOAuthLogin()");
 
-	// 強制的に認証成功扱い
-	emit authenticationSucceeded();
+	if (!oauth_) {
+		oauth_ = std::make_unique<TwitchOAuth>();
+	}
+
+	// ローカルHTTPサーバー起動して code を受け取れるようにする
+	HttpServer::instance()->start(38915, [this](const std::string &code) { this->handleOAuthCallback(code); });
+
+	oauth_->startOAuthLogin();
 }
 
 void ObsSceneSwitcher::logout()

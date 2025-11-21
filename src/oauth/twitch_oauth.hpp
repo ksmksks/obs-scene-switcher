@@ -15,11 +15,17 @@ public:
 
 	bool refreshAccessToken();
 
+	std::string buildAuthUrl();
+	bool exchangeCodeForToken(const std::string &code);
+
 	std::string getAccessToken() const { return accessToken_; }
 	std::string getRefreshToken() const { return refreshToken_; }
 	long getExpiresAt() const { return expiresAt_; }
 
 private:
+	std::string clientId_;
+	std::string clientSecret_;
+
 	std::string accessToken_;
 	std::string refreshToken_;
 	long expiresAt_ = 0;

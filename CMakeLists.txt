@@ -4,7 +4,7 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/common/bootstrap.cmake" NO_POLICY_SCO
 
 project(${_name} VERSION ${_version} LANGUAGES C CXX)
 
-option(ENABLE_FRONTEND_API "Use obs-frontend-api for UI functionality" OFF)
+option(ENABLE_FRONTEND_API "Use obs-frontend-api for UI functionality" ON)
 option(ENABLE_QT "Use Qt functionality" ON)
 
 include(compilerconfig)
@@ -14,7 +14,7 @@ include(helpers)
 add_library(${CMAKE_PROJECT_NAME} MODULE)
 
 find_package(libobs REQUIRED)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::libobs)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::libobs ixwebsocket)
 
 if(ENABLE_FRONTEND_API)
   find_package(obs-frontend-api REQUIRED)
@@ -34,11 +34,20 @@ if(ENABLE_QT)
   )
 endif()
 
+# IXWebSocket (vendor)
+add_subdirectory(src/vendor/ixwebsocket)
+
+# nlohmann/json (vendor)
+add_subdirectory(src/vendor/json)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE nlohmann_json::nlohmann_json)
+
 # Force C++ compile for .cpp plugin source
 set_source_files_properties(
     src/plugin-main.cpp
     src/obs_scene_switcher.cpp
     src/obs_scene_switcher.hpp
+    src/oauth/http_server.cpp
+    src/oauth/http_server.hpp
     src/oauth/twitch_oauth.cpp
     src/oauth/twitch_oauth.hpp
     src/eventsub/eventsub_client.cpp
@@ -72,6 +81,8 @@ target_sources(${CMAKE_PROJECT_NAME}
         src/obs_scene_switcher.hpp
 
         # OAuth
+        src/oauth/http_server.cpp
+        src/oauth/http_server.hpp
         src/oauth/twitch_oauth.cpp
         src/oauth/twitch_oauth.hpp
 
