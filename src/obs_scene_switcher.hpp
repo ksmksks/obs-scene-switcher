@@ -53,6 +53,7 @@ public:
 	// 設定
 	void loadConfig();
 	void saveConfig();
+	void reloadAuthConfig();
 
 signals:
 	void authenticationSucceeded();
@@ -69,6 +70,8 @@ private:
 	bool authenticated_ = false;
 	bool eventsubConnected_ = false;
 
+	std::string clientId_;
+	std::string clientSecret_;
 	std::string accessToken_;
 	std::string refreshToken_;
 	long expiresAt_ = 0;

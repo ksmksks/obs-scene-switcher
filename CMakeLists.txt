@@ -47,13 +47,15 @@ set_source_files_properties(
     src/obs/scene_switcher.cpp
     src/obs/scene_switcher.hpp
     src/obs/config_manager.cpp
-    src/obs/config_manager.h
+    src/obs/config_manager.hpp
     src/ui/plugin_dock.cpp
     src/ui/plugin_dock.hpp
     src/ui/plugin_properties.cpp
     src/ui/plugin_properties.h
     src/ui/login_widget.cpp
     src/ui/login_widget.hpp
+    src/ui/auth_settings_dialog.cpp
+    src/ui/auth_settings_dialog.hpp
     src/ui/dock_main_widget.cpp
     src/ui/dock_main_widget.hpp
     src/ui/settings_window.cpp
@@ -72,7 +74,6 @@ target_sources(${CMAKE_PROJECT_NAME}
         # OAuth
         src/oauth/twitch_oauth.cpp
         src/oauth/twitch_oauth.hpp
-        src/oauth/twitch_oauth_secrets.h
 
         # EventSub
         src/eventsub/eventsub_client.cpp
@@ -83,7 +84,7 @@ target_sources(${CMAKE_PROJECT_NAME}
         src/obs/scene_switcher.cpp
         src/obs/scene_switcher.hpp
         src/obs/config_manager.cpp
-        src/obs/config_manager.h
+        src/obs/config_manager.hpp
 
         # UI
         src/ui/plugin_dock.cpp
@@ -92,6 +93,8 @@ target_sources(${CMAKE_PROJECT_NAME}
         src/ui/plugin_properties.h
         src/ui/login_widget.cpp
         src/ui/login_widget.hpp
+        src/ui/auth_settings_dialog.cpp
+        src/ui/auth_settings_dialog.hpp
         src/ui/dock_main_widget.cpp
         src/ui/dock_main_widget.hpp
         src/ui/settings_window.cpp

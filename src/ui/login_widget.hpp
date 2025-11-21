@@ -5,7 +5,6 @@
 #pragma once
 #include <QWidget>
 #include <QPushButton>
-#include <QVBoxLayout>
 
 class LoginWidget : public QWidget {
 	Q_OBJECT
@@ -14,4 +13,9 @@ public:
 
 private slots:
 	void onLoginClicked();
+	void onAuthSettingsClicked();
+
+private:
+	QPushButton *loginButton_ = nullptr;
+	QPushButton *authSettingsButton_ = nullptr;
 };

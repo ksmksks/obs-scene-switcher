@@ -27,5 +27,8 @@ obs_properties_t *PluginProperties::getProperties(void *data)
 					  return true;
 				  });
 
+	obs_properties_add_text(props, s_clientIdKey_, "Twitch Client ID", OBS_TEXT_DEFAULT);		
+        obs_properties_add_text(props, s_clientSecretKey_, "Twitch Client Secret", OBS_TEXT_PASSWORD);
+
 	return props;
 }

@@ -5,6 +5,7 @@
 #include "obs_scene_switcher.hpp"
 #include "ui/plugin_properties.h"
 #include "ui/plugin_dock.hpp"
+#include "obs/config_manager.hpp"
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -59,6 +60,9 @@ void ObsSceneSwitcher::start()
 			 &PluginDock::onAuthenticationSucceeded,
 			 Qt::QueuedConnection // UIスレッド保証
 	);
+
+	// 認証設定をロード
+	reloadAuthConfig();
 
 	loadConfig();
 
@@ -156,6 +160,15 @@ void ObsSceneSwitcher::saveConfig()
 	blog(LOG_INFO, "[SceneSwitcher] saveConfig()");
 
 	// TODO: OBS 設定保存
+}
+
+void ObsSceneSwitcher::reloadAuthConfig()
+{
+	auto &cfg = ConfigManager::instance();
+	clientId_ = cfg.getClientId();
+	clientSecret_ = cfg.getClientSecret();
+
+	blog(LOG_INFO, "[SceneSwitcher] Auth config loaded (client_id=%s)", clientId_.empty() ? "(empty)" : "*****");
 }
 
 extern "C" {

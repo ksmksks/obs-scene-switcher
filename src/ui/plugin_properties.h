@@ -13,4 +13,8 @@ public:
 	static obs_properties_t *getProperties(void *data);
 	static bool onLoginClicked(obs_properties_t *props, obs_property_t *property, void *data);
 	static bool onLogoutClicked(obs_properties_t *props, obs_property_t *property, void *data);
+
+private:
+	static constexpr const char *s_clientIdKey_ = "client_id";
+	static constexpr const char *s_clientSecretKey_ = "client_secret";
 };
