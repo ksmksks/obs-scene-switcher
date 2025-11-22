@@ -174,14 +174,21 @@ void ObsSceneSwitcher::loadConfig()
 {
 	blog(LOG_INFO, "[SceneSwitcher] loadConfig()");
 
-	// TODO: OBS 設定読み込み
+	auto &cfg = ConfigManager::instance();
+	accessToken_ = cfg.getAccessToken();
+	refreshToken_ = cfg.getRefreshToken();
+	expiresAt_ = cfg.getTokenExpiresAt();
 }
 
 void ObsSceneSwitcher::saveConfig()
 {
 	blog(LOG_INFO, "[SceneSwitcher] saveConfig()");
 
-	// TODO: OBS 設定保存
+	auto &cfg = ConfigManager::instance();
+	cfg.setAccessToken(accessToken_);
+	cfg.setRefreshToken(refreshToken_);
+	cfg.setTokenExpiresAt(expiresAt_);
+	cfg.save();
 }
 
 void ObsSceneSwitcher::reloadAuthConfig()

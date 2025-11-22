@@ -32,7 +32,7 @@ void TwitchOAuth::startOAuthLogin()
 	clientSecret_ = cfg.getClientSecret();
 
 	if (clientId_.empty() || clientSecret_.empty()) {
-		blog(LOG_ERROR, "[OAuth] Client ID または Secret が未設定です");
+		blog(LOG_ERROR, "[OAuth] Client ID or Client Secret is not configured");
 		return;
 	}
 

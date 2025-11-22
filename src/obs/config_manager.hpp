@@ -18,6 +18,13 @@ public:
 	void setClientId(const std::string &id);
 	void setClientSecret(const std::string &secret);
 
+	const std::string &getAccessToken() const;
+	const std::string &getRefreshToken() const;
+	long getTokenExpiresAt() const;
+	void setAccessToken(const std::string &token);
+	void setRefreshToken(const std::string &token);
+	void setTokenExpiresAt(long expiresAt);
+
 
 private:
 	ConfigManager();
@@ -30,9 +37,9 @@ private:
 	std::string clientId_;
 	std::string clientSecret_;
 
-	// 公開フィールド（簡易版）
 	std::string accessToken_;
 	std::string refreshToken_;
 	long expiresAt_ = 0;
+
 	std::unordered_map<std::string, std::string> rewardMapping_;
 };

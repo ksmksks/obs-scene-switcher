@@ -4,10 +4,14 @@
 
 #include "config_manager.hpp"
 
+#include <obs-module.h>
 #include <fstream>
 #include <sstream>
 #include <filesystem>
-#include <obs-module.h>
+#include <vector>
+#include <windows.h>
+#include <wincrypt.h>
+#pragma comment(lib, "Crypt32.lib")
 
 ConfigManager &ConfigManager::instance()
 {
@@ -29,6 +33,74 @@ ConfigManager::ConfigManager()
 	load();
 }
 
+static std::string DPAPIEncrypt(const std::string &plain)
+{
+	DATA_BLOB input;
+	input.pbData = (BYTE *)plain.data();
+	input.cbData = (DWORD)plain.size();
+
+	DATA_BLOB output;
+	if (CryptProtectData(&input, L"", NULL, NULL, NULL, 0, &output)) {
+		std::string encrypted(reinterpret_cast<char *>(output.pbData), output.cbData);
+		LocalFree(output.pbData);
+		return encrypted;
+	}
+	return {};
+}
+
+static std::string DPAPIDecrypt(const std::string &encrypted)
+{
+	DATA_BLOB input;
+	input.pbData = (BYTE *)encrypted.data();
+	input.cbData = (DWORD)encrypted.size();
+
+	DATA_BLOB output;
+	if (CryptUnprotectData(&input, NULL, NULL, NULL, NULL, 0, &output)) {
+		std::string decrypted(reinterpret_cast<char *>(output.pbData), output.cbData);
+		LocalFree(output.pbData);
+		return decrypted;
+	}
+	return {};
+}
+
+static std::string base64_encode(const std::string &input)
+{
+	DWORD outLen = 0;
+	CryptBinaryToStringA(reinterpret_cast<const BYTE *>(input.data()), (DWORD)input.size(),
+			     CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, nullptr, &outLen);
+	std::string output(outLen, '\0');
+	CryptBinaryToStringA(reinterpret_cast<const BYTE *>(input.data()), (DWORD)input.size(),
+			     CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, &output[0], &outLen);
+	if (outLen > 0 && output[outLen - 1] == '\0')
+		output.resize(outLen - 1);
+	else
+		output.resize(outLen);
+
+	return output;
+}
+
+static std::string base64_decode(const std::string &input)
+{
+	DWORD outLen = 0;
+	CryptStringToBinaryA(input.c_str(), (DWORD)input.length(), CRYPT_STRING_BASE64, nullptr, &outLen, nullptr,
+			     nullptr);
+	std::string output(outLen, '\0');
+	CryptStringToBinaryA(input.c_str(), (DWORD)input.length(), CRYPT_STRING_BASE64,
+			     reinterpret_cast<BYTE *>(&output[0]),
+			     &outLen, nullptr, nullptr);
+	return output;
+}
+
+std::string secureEncode(const std::string &plain)
+{
+	return base64_encode(DPAPIEncrypt(plain));
+}
+
+std::string secureDecode(const std::string &encoded)
+{
+	return DPAPIDecrypt(base64_decode(encoded));
+}
+
 void ConfigManager::save()
 {
 	if (configPath_.empty()) {
@@ -46,9 +118,12 @@ void ConfigManager::save()
 	}
 
 	ofs << "client_id=" << clientId_ << "\n";
-	ofs << "client_secret=" << clientSecret_ << "\n";
+	ofs << "client_secret=" << secureEncode(clientSecret_) << "\n";
+	ofs << "access_token=" << secureEncode(accessToken_) << "\n";
+	ofs << "refresh_token=" << secureEncode(refreshToken_) << "\n";
+	ofs << "expires_at=" << expiresAt_ << "\n";
 
-	blog(LOG_INFO, "[ConfigManager] Settings saved successfully to %s", configPath_.c_str());
+	blog(LOG_DEBUG, "[ConfigManager] Settings saved successfully to %s", configPath_.c_str());
 }
 
 void ConfigManager::load()
@@ -65,7 +140,21 @@ void ConfigManager::load()
 		if (line.rfind("client_id=", 0) == 0) {
 			clientId_ = line.substr(std::string("client_id=").size());
 		} else if (line.rfind("client_secret=", 0) == 0) {
-			clientSecret_ = line.substr(std::string("client_secret=").size());
+			clientSecret_ = secureDecode(line.substr(14));
+		} else if (line.rfind("access_token=", 0) == 0) {
+			accessToken_ = secureDecode(line.substr(13));
+		} else if (line.rfind("refresh_token=", 0) == 0) {
+			refreshToken_ = secureDecode(line.substr(14));
+		} else if (line.rfind("expires_at=", 0) == 0) {
+			const auto rawVal = line.substr(std::string("expires_at=").size());
+			try {
+				expiresAt_ = std::stol(rawVal);
+			} catch (...) {
+				expiresAt_ = 0;
+				blog(LOG_ERROR,
+				     "[ConfigManager] Failed to parse expires_at (value=\"%s\"). Defaulting to 0.",
+				     rawVal.c_str());
+			}
 		}
 	}
 }
@@ -88,4 +177,34 @@ void ConfigManager::setClientId(const std::string &id)
 void ConfigManager::setClientSecret(const std::string &secret)
 {
 	clientSecret_ = secret;
+}
+
+const std::string &ConfigManager::getAccessToken() const
+{
+	return accessToken_;
+}
+
+const std::string &ConfigManager::getRefreshToken() const
+{
+	return refreshToken_;
+}
+
+long ConfigManager::getTokenExpiresAt() const
+{
+	return expiresAt_;
+}
+
+void ConfigManager::setAccessToken(const std::string &token)
+{
+	accessToken_ = token;
+}
+
+void ConfigManager::setRefreshToken(const std::string &token)
+{
+	refreshToken_ = token;
+}
+
+void ConfigManager::setTokenExpiresAt(long ts)
+{
+	expiresAt_ = ts;
 }
