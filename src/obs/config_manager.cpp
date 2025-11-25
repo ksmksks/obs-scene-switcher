@@ -60,6 +60,10 @@ static std::string DPAPIDecrypt(const std::string &encrypted)
 		LocalFree(output.pbData);
 		return decrypted;
 	}
+
+	DWORD err = GetLastError();
+	blog(LOG_ERROR, "[ConfigManager] DPAPI decrypt failed (size=%lu, GetLastError=%lu)", input.cbData, err);
+
 	return {};
 }
 
@@ -81,24 +85,60 @@ static std::string base64_encode(const std::string &input)
 
 static std::string base64_decode(const std::string &input)
 {
+	if (input.empty()) {
+		blog(LOG_ERROR, "[ConfigManager] Base64 decode failed: input is empty");
+		return {};
+	}
+
 	DWORD outLen = 0;
-	CryptStringToBinaryA(input.c_str(), (DWORD)input.length(), CRYPT_STRING_BASE64, nullptr, &outLen, nullptr,
-			     nullptr);
+	if (!CryptStringToBinaryA(input.c_str(), (DWORD)input.length(), CRYPT_STRING_BASE64, nullptr, &outLen, nullptr,
+				  nullptr)) {
+		blog(LOG_ERROR, "[ConfigManager] Base64 length query failed (input length=%zu)", input.size());
+		return {};
+	}
+
 	std::string output(outLen, '\0');
-	CryptStringToBinaryA(input.c_str(), (DWORD)input.length(), CRYPT_STRING_BASE64,
-			     reinterpret_cast<BYTE *>(&output[0]),
-			     &outLen, nullptr, nullptr);
+	if (!CryptStringToBinaryA(input.c_str(), (DWORD)input.length(), CRYPT_STRING_BASE64,
+				  reinterpret_cast<BYTE *>(&output[0]), &outLen, nullptr, nullptr)) {
+		blog(LOG_ERROR, "[ConfigManager] Base64 decode failed (input length=%zu)", input.size());
+		return {};
+	}
+
 	return output;
 }
 
 std::string secureEncode(const std::string &plain)
 {
-	return base64_encode(DPAPIEncrypt(plain));
+	auto enc = DPAPIEncrypt(plain);
+	if (enc.empty()) {
+		blog(LOG_ERROR, "[ConfigManager] DPAPI encrypt failed (input length=%zu)", plain.size());
+		return {};
+	}
+
+	auto b64 = base64_encode(enc);
+	if (b64.empty()) {
+		blog(LOG_ERROR, "[ConfigManager] Base64 encode failed (encrypted length=%zu)", enc.size());
+		return {};
+	}
+
+	return b64;
 }
 
 std::string secureDecode(const std::string &encoded)
 {
-	return DPAPIDecrypt(base64_decode(encoded));
+	auto bin = base64_decode(encoded);
+	if (bin.empty()) {
+		blog(LOG_ERROR, "[ConfigManager] secureDecode failed: Base64 decode returned empty");
+		return {};
+	}
+
+	auto dec = DPAPIDecrypt(bin);
+	if (dec.empty()) {
+		blog(LOG_ERROR, "[ConfigManager] secureDecode failed: DPAPI decrypt returned empty");
+		return {};
+	}
+
+	return dec;
 }
 
 void ConfigManager::save()
