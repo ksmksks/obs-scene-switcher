@@ -25,6 +25,7 @@ public:
 	void setRefreshToken(const std::string &token);
 	void setTokenExpiresAt(long expiresAt);
 
+	bool isAuthValid() const;
 
 private:
 	ConfigManager();

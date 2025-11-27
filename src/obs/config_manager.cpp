@@ -248,3 +248,8 @@ void ConfigManager::setTokenExpiresAt(long ts)
 {
 	expiresAt_ = ts;
 }
+
+bool ConfigManager::isAuthValid() const
+{
+	return !clientId_.empty() && !clientSecret_.empty() && !accessToken_.empty();
+}
