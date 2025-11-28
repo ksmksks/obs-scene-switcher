@@ -257,5 +257,7 @@ bool ConfigManager::isAuthValid() const
 bool ConfigManager::isTokenExpired() const
 {
 	const long now = static_cast<long>(time(nullptr));
+	if (expiresAt_ <= 0)
+		return true;
 	return expiresAt_ <= now;
 }
