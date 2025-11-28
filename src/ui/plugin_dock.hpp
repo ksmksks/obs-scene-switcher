@@ -24,6 +24,7 @@ public:
 
 public slots:
 	void onAuthenticationSucceeded();
+	void onAuthenticationFailed();
 	void onSettingsRequested();
 
 private:

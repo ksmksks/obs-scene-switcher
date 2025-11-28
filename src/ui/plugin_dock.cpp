@@ -7,7 +7,6 @@
 #include "login_widget.hpp"
 #include "dock_main_widget.hpp"
 #include "settings_window.hpp"
-#include "../obs/config_manager.hpp"
 #include "../obs_scene_switcher.hpp"
 
 #include <obs-frontend-api.h>
@@ -35,15 +34,8 @@ PluginDock::PluginDock()
 	layout_->addWidget(loginWidget_);
 	layout_->addWidget(mainDockWidget_);
 
-        auto &cfg = ConfigManager::instance();
-	if (cfg.isAuthValid())
-	{
-		layout_->setCurrentWidget(mainDockWidget_);
-		blog(LOG_INFO, "[Dock] Auth valid at startup. Showing main UI.");
-	} else {
-		layout_->setCurrentWidget(loginWidget_);
-		blog(LOG_INFO, "[Dock] No auth data. Showing login UI.");
-	}
+	// 初期状態はログイン画面
+	layout_->setCurrentWidget(loginWidget_);
 
 	// SettingsWindow のボタンシグナル
 	connect(mainDockWidget_, &DockMainWidget::settingsRequested, this, &PluginDock::onSettingsRequested);
@@ -73,6 +65,12 @@ void PluginDock::onAuthenticationSucceeded()
 {
 	this->showMain();
 	blog(LOG_INFO, "[Dock] Switched to MainDockWidget");
+}
+
+void PluginDock::onAuthenticationFailed()
+{
+	this->showLogin();
+	blog(LOG_INFO, "[Dock] Switched to LoginWidget");
 }
 
 void PluginDock::onSettingsRequested()

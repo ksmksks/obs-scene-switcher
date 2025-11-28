@@ -253,3 +253,9 @@ bool ConfigManager::isAuthValid() const
 {
 	return !clientId_.empty() && !clientSecret_.empty() && !accessToken_.empty();
 }
+
+bool ConfigManager::isTokenExpired() const
+{
+	const long now = static_cast<long>(time(nullptr));
+	return expiresAt_ <= now;
+}

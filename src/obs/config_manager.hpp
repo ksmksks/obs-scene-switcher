@@ -26,6 +26,7 @@ public:
 	void setTokenExpiresAt(long expiresAt);
 
 	bool isAuthValid() const;
+	bool isTokenExpired() const;
 
 private:
 	ConfigManager();

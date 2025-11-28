@@ -4,11 +4,16 @@
 
 #pragma once
 #include <string>
+#include <QObject>
 
-class TwitchOAuth {
+class TwitchOAuth : public QObject {
+	Q_OBJECT
 public:
-	TwitchOAuth();
-	~TwitchOAuth();
+	static TwitchOAuth &instance()
+	{
+		static TwitchOAuth inst;
+		return inst;
+	}
 
 	void startOAuthLogin();                       // ブラウザで認証開始
 	void handleAuthCode(const std::string &code); // /callback で受信
@@ -23,6 +28,11 @@ public:
 	long getExpiresAt() const { return expiresAt_; }
 
 private:
+	TwitchOAuth();
+	~TwitchOAuth();
+	TwitchOAuth(const TwitchOAuth &) = delete;
+	TwitchOAuth &operator=(const TwitchOAuth &) = delete;
+
 	std::string clientId_;
 	std::string clientSecret_;
 

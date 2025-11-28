@@ -61,16 +61,43 @@ void ObsSceneSwitcher::start()
 			 &PluginDock::onAuthenticationSucceeded,
 			 Qt::QueuedConnection // UIスレッド保証
 	);
+	QObject::connect(this, // ObsSceneSwitcher (signal発信元)
+			 &ObsSceneSwitcher::authenticationFailed,
+			 dock, // PluginDock (UI側)
+			 &PluginDock::onAuthenticationFailed,
+			 Qt::QueuedConnection // UIスレッド保証
+	);
 
 	// 認証設定をロード
 	reloadAuthConfig();
-
 	loadConfig();
 
-	if (authenticated_) {
-		dock->showMain();
-		connectEventSub();
+	auto &cfg = ConfigManager::instance();
+
+        // 認証情報がない → UIには関与せず通知のみ
+	if (!cfg.isAuthValid()) {
+		blog(LOG_INFO, "[SceneSwitcher] No auth config found");
+		authenticated_ = false;
+		emit authenticationFailed();
+		return;
 	}
+
+	// 期限切れならトークン更新
+	if (cfg.isTokenExpired()) {
+		blog(LOG_INFO, "[SceneSwitcher] Token expired. Trying refresh.");
+		if (!TwitchOAuth::instance().refreshAccessToken()) {
+			blog(LOG_ERROR, "[SceneSwitcher] Token refresh failed");
+			authenticated_ = false;
+			emit authenticationFailed();
+			return;
+		}
+		cfg.save();
+	}
+
+	// 認証成功
+	authenticated_ = true;
+	emit authenticationSucceeded();
+	connectEventSub();
 }
 
 void ObsSceneSwitcher::stop()
@@ -83,20 +110,15 @@ void ObsSceneSwitcher::handleOAuthCallback(const std::string &code)
 {
 	blog(LOG_INFO, "[OAuth] Received code: %s", code.c_str());
 
-	if (!oauth_) {
-		blog(LOG_ERROR, "[OAuth] oauth object missing");
-		return;
-	}
-
-	if (!oauth_->exchangeCodeForToken(code)) {
+	if (!TwitchOAuth::instance().exchangeCodeForToken(code)) {
 		blog(LOG_ERROR, "[OAuth] Failed to exchange token");
 		return;
 	}
 
 	// 結果を読み取る
-	accessToken_ = oauth_->getAccessToken();
-	refreshToken_ = oauth_->getRefreshToken();
-	expiresAt_ = oauth_->getExpiresAt();
+	accessToken_ = TwitchOAuth::instance().getAccessToken();
+	refreshToken_ = TwitchOAuth::instance().getRefreshToken();
+	expiresAt_ = TwitchOAuth::instance().getExpiresAt();
 
 	authenticated_ = true;
 
@@ -114,14 +136,10 @@ void ObsSceneSwitcher::startOAuthLogin()
 {
 	blog(LOG_INFO, "[SceneSwitcher] startOAuthLogin()");
 
-	if (!oauth_) {
-		oauth_ = std::make_unique<TwitchOAuth>();
-	}
-
 	// ローカルHTTPサーバー起動して code を受け取れるようにする
 	HttpServer::instance()->start(38915, [this](const std::string &code) { this->handleOAuthCallback(code); });
 
-	oauth_->startOAuthLogin();
+	TwitchOAuth::instance().startOAuthLogin();
 }
 
 void ObsSceneSwitcher::logout()

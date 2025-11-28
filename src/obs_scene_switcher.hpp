@@ -57,6 +57,7 @@ public:
 
 signals:
 	void authenticationSucceeded();
+	void authenticationFailed();
 
 private:
 	ObsSceneSwitcher();
@@ -81,7 +82,6 @@ private:
 	std::unordered_map<std::string, std::string> rewardSceneMap_;
 
 	// 各コンポーネント
-	std::unique_ptr<TwitchOAuth> oauth_;
 	std::unique_ptr<EventSubClient> eventsub_;
 	std::unique_ptr<SceneSwitcher> sceneSwitcher_;
 };
