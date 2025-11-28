@@ -10,6 +10,7 @@
 #include "../obs_scene_switcher.hpp"
 
 #include <obs-frontend-api.h>
+#include <QMessageBox>
 
 PluginDock *PluginDock::s_instance_ = nullptr;
 
@@ -71,6 +72,14 @@ void PluginDock::onAuthenticationFailed()
 {
 	this->showLogin();
 	blog(LOG_INFO, "[Dock] Switched to LoginWidget");
+
+        // ログイン失敗メッセージ表示
+	if (mainWidget_) {
+		QMessageBox::warning(mainWidget_, tr("OBS Scene Switcher プラグイン - 認証エラー"),
+				     tr("Twitch へのログインに失敗しました。\n"
+					"クライアントID / クライアントシークレットや\n"
+					"ネットワーク設定を確認して、再度お試しください。"));
+	}
 }
 
 void PluginDock::onSettingsRequested()
