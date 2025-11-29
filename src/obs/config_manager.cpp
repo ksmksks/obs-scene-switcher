@@ -162,6 +162,7 @@ void ConfigManager::save()
 	ofs << "access_token=" << secureEncode(accessToken_) << "\n";
 	ofs << "refresh_token=" << secureEncode(refreshToken_) << "\n";
 	ofs << "expires_at=" << expiresAt_ << "\n";
+	ofs << "broadcaster_user_id=" << broadcasterUserId_ << "\n";
 
 	blog(LOG_DEBUG, "[ConfigManager] Settings saved successfully to %s", configPath_.c_str());
 }
@@ -180,11 +181,11 @@ void ConfigManager::load()
 		if (line.rfind("client_id=", 0) == 0) {
 			clientId_ = line.substr(std::string("client_id=").size());
 		} else if (line.rfind("client_secret=", 0) == 0) {
-			clientSecret_ = secureDecode(line.substr(14));
+			clientSecret_ = secureDecode(line.substr(std::string("client_secret=").size()));
 		} else if (line.rfind("access_token=", 0) == 0) {
-			accessToken_ = secureDecode(line.substr(13));
+			accessToken_ = secureDecode(line.substr(std::string("access_token=").size()));
 		} else if (line.rfind("refresh_token=", 0) == 0) {
-			refreshToken_ = secureDecode(line.substr(14));
+			refreshToken_ = secureDecode(line.substr(std::string("refresh_token=").size()));
 		} else if (line.rfind("expires_at=", 0) == 0) {
 			const auto rawVal = line.substr(std::string("expires_at=").size());
 			try {
@@ -195,6 +196,8 @@ void ConfigManager::load()
 				     "[ConfigManager] Failed to parse expires_at (value=\"%s\"). Defaulting to 0.",
 				     rawVal.c_str());
 			}
+		} else if (line.rfind("broadcaster_user_id=", 0) == 0) {
+			broadcasterUserId_ = line.substr(std::string("broadcaster_user_id=").size());
 		}
 	}
 }

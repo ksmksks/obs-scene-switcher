@@ -27,6 +27,8 @@ public:
 	std::string getRefreshToken() const { return refreshToken_; }
 	long getExpiresAt() const { return expiresAt_; }
 
+	const std::string &getBroadcasterUserId() const { return broadcasterUserId_; }
+
 private:
 	TwitchOAuth();
 	~TwitchOAuth();
@@ -39,4 +41,6 @@ private:
 	std::string accessToken_;
 	std::string refreshToken_;
 	long expiresAt_ = 0;
+
+	std::string broadcasterUserId_;
 };

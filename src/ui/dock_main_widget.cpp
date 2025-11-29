@@ -15,8 +15,11 @@ DockMainWidget::DockMainWidget(QWidget *parent) : QWidget(parent)
 	labelScene_ = new QLabel("現在シーン: 未取得", this);
 	labelCountdown_ = new QLabel("", this);
 
+        labelAuthStatus_ = new QLabel("認証状態: 未ログイン", this);
+	layout->addWidget(labelAuthStatus_);
+
 	buttonTest_ = new QPushButton("テスト切替", this);
-	buttonSettings_ = new QPushButton("設定を開く", this);
+	buttonSettings_ = new QPushButton("設定", this);
 
 	layout->addWidget(labelScene_);
 	layout->addWidget(labelCountdown_);
@@ -25,6 +28,12 @@ DockMainWidget::DockMainWidget(QWidget *parent) : QWidget(parent)
 
 	connect(buttonTest_, &QPushButton::clicked, this, &DockMainWidget::testSwitchRequested);
 	connect(buttonSettings_, &QPushButton::clicked, this, &DockMainWidget::settingsRequested);
+}
+
+void DockMainWidget::updateAuthStatus(const QString &status)
+{
+	if (labelAuthStatus_)
+		labelAuthStatus_->setText(status);
 }
 
 void DockMainWidget::updateSceneInfo(const QString &sceneName, int remainingSeconds)

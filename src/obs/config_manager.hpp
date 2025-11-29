@@ -28,6 +28,9 @@ public:
 	bool isAuthValid() const;
 	bool isTokenExpired() const;
 
+	void setBroadcasterUserId(const std::string &id) { broadcasterUserId_ = id; }
+	const std::string &getBroadcasterUserId() const { return broadcasterUserId_; }
+
 private:
 	ConfigManager();
 	~ConfigManager() = default;
@@ -42,6 +45,8 @@ private:
 	std::string accessToken_;
 	std::string refreshToken_;
 	long expiresAt_ = 0;
+
+	std::string broadcasterUserId_;
 
 	std::unordered_map<std::string, std::string> rewardMapping_;
 };

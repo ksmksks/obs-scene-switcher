@@ -7,6 +7,7 @@
 #include "login_widget.hpp"
 #include "dock_main_widget.hpp"
 #include "settings_window.hpp"
+#include "../obs/config_manager.hpp"
 #include "../obs_scene_switcher.hpp"
 
 #include <obs-frontend-api.h>
@@ -101,6 +102,16 @@ void PluginDock::showLogin()
 
 void PluginDock::showMain()
 {
-	if (layout_ && mainDockWidget_)
+	if (layout_ && mainDockWidget_) {
 		layout_->setCurrentWidget(mainDockWidget_);
+
+		auto &cfg = ConfigManager::instance();
+		QString status = "認証状態: ✔ログイン済み";
+		if (!cfg.getBroadcasterUserId().empty())
+			status += QString("\nTwitch ID: %1").arg(cfg.getBroadcasterUserId().c_str());
+		else
+			status += "\n（ユーザー情報取得なし）";
+
+		mainDockWidget_->updateAuthStatus(status);
+	}
 }

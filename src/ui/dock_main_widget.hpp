@@ -16,6 +16,8 @@ class DockMainWidget : public QWidget {
 public:
 	explicit DockMainWidget(QWidget *parent = nullptr);
 
+	void updateAuthStatus(const QString &status);
+
 	/// 現在シーン名と残り秒数の表示更新
 	void updateSceneInfo(const QString &sceneName, int remainingSeconds = -1);
 
@@ -27,6 +29,7 @@ signals:
 	void testSwitchRequested();
 
 private:
+	QLabel *labelAuthStatus_ = nullptr;
 	QLabel *labelScene_;
 	QLabel *labelCountdown_;
 	QPushButton *buttonSettings_;
