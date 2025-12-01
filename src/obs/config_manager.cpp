@@ -260,7 +260,12 @@ void ConfigManager::setTokenExpiresAt(long ts)
 
 bool ConfigManager::isAuthValid() const
 {
-	return !clientId_.empty() && !clientSecret_.empty() && !accessToken_.empty();
+	// 初回起動 or 設定が保存されていない
+	if (clientId_.empty() || clientSecret_.empty())
+		return false;
+
+	// 一度でもログインした状態
+	return !accessToken_.empty();
 }
 
 bool ConfigManager::isTokenExpired() const

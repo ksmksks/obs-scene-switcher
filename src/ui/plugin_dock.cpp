@@ -77,13 +77,19 @@ void PluginDock::onAuthenticationFailed()
 	this->showLogin();
 	blog(LOG_INFO, "[Dock] Switched to LoginWidget");
 
-        // ログイン失敗メッセージ表示
-	if (mainWidget_) {
-		QMessageBox::warning(mainWidget_, tr("OBS Scene Switcher プラグイン - 認証エラー"),
-				     tr("Twitch へのログインに失敗しました。\n"
-					"クライアントID / クライアントシークレットや\n"
-					"ネットワーク設定を確認して、再度お試しください。"));
+	auto &cfg = ConfigManager::instance();
+
+        // 初期設定 or アクセストークンが保存されていない → 警告不要
+	if (cfg.getClientId().empty() || cfg.getClientSecret().empty()) {
+		blog(LOG_INFO, "[Dock] First startup – no auth warning shown.");
+		return;
 	}
+
+	// 過去に認証履歴ある → 警告表示
+	QMessageBox::warning(mainWidget_, tr("OBS Scene Switcher プラグイン - 認証エラー"),
+			     tr("Twitch へのログインに失敗しました。\n"
+				"クライアントID / クライアントシークレットや\n"
+				"ネットワーク設定を確認して、再度お試しください。"));
 }
 
 void PluginDock::onSettingsRequested()

@@ -74,9 +74,9 @@ void ObsSceneSwitcher::start()
 
 	auto &cfg = ConfigManager::instance();
 
-        // 認証情報がない → UIには関与せず通知のみ
+        // 初回 or 未設定
 	if (!cfg.isAuthValid()) {
-		blog(LOG_INFO, "[SceneSwitcher] No auth config found");
+		blog(LOG_INFO, "[SceneSwitcher] Initial startup or no auth config");
 		authenticated_ = false;
 		emit authenticationFailed();
 		return;

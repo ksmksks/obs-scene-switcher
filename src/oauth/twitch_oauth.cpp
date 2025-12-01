@@ -51,17 +51,17 @@ void TwitchOAuth::handleAuthCode(const std::string &code)
 
 bool TwitchOAuth::refreshAccessToken()
 {
-	blog(LOG_INFO, "[OAuth] Refreshing access token...");
-
 	auto &cfg = ConfigManager::instance();
 	refreshToken_ = cfg.getRefreshToken();
 	clientId_ = cfg.getClientId();
 	clientSecret_ = cfg.getClientSecret();
 
 	if (refreshToken_.empty()) {
-		blog(LOG_ERROR, "[OAuth] Refresh token is empty");
+		blog(LOG_INFO, "[OAuth] No refresh token available. Skipping refresh.");
 		return false;
 	}
+
+	blog(LOG_INFO, "[OAuth] Refreshing access token...");
 
 	auto attemptRefresh = [&]() -> bool {
                 HINTERNET hInet = InternetOpenA("TwitchOAuth", INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
