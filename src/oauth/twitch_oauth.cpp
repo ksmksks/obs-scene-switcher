@@ -163,6 +163,55 @@ std::string TwitchOAuth::buildAuthUrl()
 	return url;
 }
 
+bool TwitchOAuth::fetchUserInfo()
+{
+	HINTERNET hInet = InternetOpenA("TwitchOAuth", INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
+	if (!hInet)
+		return false;
+
+	HINTERNET hConnect =
+		InternetConnectA(hInet, "api.twitch.tv", 443, nullptr, nullptr, INTERNET_SERVICE_HTTP, 0, 0);
+	if (!hConnect)
+		return false;
+
+	HINTERNET hRequest =
+		HttpOpenRequestA(hConnect, "GET", "/helix/users", NULL, NULL, NULL, INTERNET_FLAG_SECURE, 0);
+
+	std::string headers = "Client-ID: " + clientId_ +
+			      "\r\n"
+			      "Authorization: Bearer " +
+			      accessToken_ + "\r\n";
+
+	if (!HttpSendRequestA(hRequest, headers.c_str(), (DWORD)headers.size(), nullptr, 0)) {
+		blog(LOG_ERROR, "[OAuth] Failed to send user info request");
+		return false;
+	}
+
+	char buffer[8192];
+	DWORD read = 0;
+	std::string response;
+	while (InternetReadFile(hRequest, buffer, sizeof(buffer), &read) && read > 0) {
+		response.append(buffer, read);
+	}
+
+	InternetCloseHandle(hRequest);
+	InternetCloseHandle(hConnect);
+	InternetCloseHandle(hInet);
+
+	auto json = nlohmann::json::parse(response, nullptr, false);
+	if (json.is_discarded() || !json.contains("data") || json["data"].empty())
+		return false;
+
+	const auto &user = json["data"][0];
+	broadcasterUserId_ = user.value("id", "");
+	broadcasterLogin_ = user.value("login", "");
+	displayName_ = user.value("display_name", "");
+
+	blog(LOG_INFO, "[OAuth] User: %s (%s)", displayName_.c_str(), broadcasterLogin_.c_str());
+
+	return true;
+}
+
 bool TwitchOAuth::exchangeCodeForToken(const std::string &code)
 {
 	blog(LOG_INFO, "[OAuth] Exchanging code for token...");
@@ -207,6 +256,23 @@ bool TwitchOAuth::exchangeCodeForToken(const std::string &code)
 		return false;
 	}
 
-	blog(LOG_INFO, "[OAuth] Token received (length=%d)", (int)accessToken_.size());
+	blog(LOG_INFO, "[OAuth] Token exchange complete. Fetching user info...");
+
+	// ユーザー情報取得
+	if (!fetchUserInfo()) {
+		blog(LOG_ERROR, "[OAuth] Failed to fetch user info");
+		return false;
+	}
+
+	// Config 保存
+	auto &cfg = ConfigManager::instance();
+	cfg.setAccessToken(accessToken_);
+	cfg.setRefreshToken(refreshToken_);
+	cfg.setTokenExpiresAt(expiresAt_);
+	cfg.setBroadcasterUserId(broadcasterUserId_);
+	cfg.setBroadcasterLogin(broadcasterLogin_);
+	cfg.setBroadcasterDisplayName(displayName_);
+	cfg.save();
+
 	return true;
 }

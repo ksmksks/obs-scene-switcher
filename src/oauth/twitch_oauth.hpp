@@ -34,6 +34,7 @@ private:
 	~TwitchOAuth();
 	TwitchOAuth(const TwitchOAuth &) = delete;
 	TwitchOAuth &operator=(const TwitchOAuth &) = delete;
+	bool fetchUserInfo();
 
 	std::string clientId_;
 	std::string clientSecret_;
@@ -43,4 +44,6 @@ private:
 	long expiresAt_ = 0;
 
 	std::string broadcasterUserId_;
+	std::string broadcasterLogin_;
+	std::string displayName_;
 };

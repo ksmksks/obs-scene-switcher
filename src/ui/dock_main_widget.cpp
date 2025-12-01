@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include "dock_main_widget.hpp"
+#include "../obs/config_manager.hpp"
 
 #include <QLabel>
 #include <QPushButton>
@@ -17,6 +18,9 @@ DockMainWidget::DockMainWidget(QWidget *parent) : QWidget(parent)
 
         labelAuthStatus_ = new QLabel("認証状態: 未ログイン", this);
 	layout->addWidget(labelAuthStatus_);
+
+	userLabel_ = new QLabel("", this);
+	layout->addWidget(userLabel_);
 
 	buttonTest_ = new QPushButton("テスト切替", this);
 	buttonSettings_ = new QPushButton("設定", this);
@@ -34,6 +38,16 @@ void DockMainWidget::updateAuthStatus(const QString &status)
 {
 	if (labelAuthStatus_)
 		labelAuthStatus_->setText(status);
+}
+
+void DockMainWidget::updateUserInfo()
+{
+	auto &cfg = ConfigManager::instance();
+	const auto &name = cfg.getBroadcasterDisplayName();
+	const auto &login = cfg.getBroadcasterLogin();
+
+	QString text = QString("Twitch：%1 (%2)").arg(name.c_str()).arg(login.c_str());
+	userLabel_->setText(text);
 }
 
 void DockMainWidget::updateSceneInfo(const QString &sceneName, int remainingSeconds)

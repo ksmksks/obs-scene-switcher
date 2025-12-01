@@ -67,6 +67,9 @@ void PluginDock::onAuthenticationSucceeded()
 {
 	this->showMain();
 	blog(LOG_INFO, "[Dock] Switched to MainDockWidget");
+
+	if (mainDockWidget_)
+		mainDockWidget_->updateUserInfo();
 }
 
 void PluginDock::onAuthenticationFailed()
@@ -107,11 +110,11 @@ void PluginDock::showMain()
 
 		auto &cfg = ConfigManager::instance();
 		QString status = "認証状態: ✔ログイン済み";
-		if (!cfg.getBroadcasterUserId().empty())
-			status += QString("\nTwitch ID: %1").arg(cfg.getBroadcasterUserId().c_str());
-		else
-			status += "\n（ユーザー情報取得なし）";
 
+		// 認証ステータス更新
 		mainDockWidget_->updateAuthStatus(status);
+
+		// ユーザー表示の更新
+		mainDockWidget_->updateUserInfo();
 	}
 }

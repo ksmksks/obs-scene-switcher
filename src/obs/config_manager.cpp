@@ -163,6 +163,8 @@ void ConfigManager::save()
 	ofs << "refresh_token=" << secureEncode(refreshToken_) << "\n";
 	ofs << "expires_at=" << expiresAt_ << "\n";
 	ofs << "broadcaster_user_id=" << broadcasterUserId_ << "\n";
+	ofs << "broadcaster_login=" << broadcasterLogin_ << "\n";
+	ofs << "broadcaster_display_name=" << streamerDisplayName_ << "\n";
 
 	blog(LOG_DEBUG, "[ConfigManager] Settings saved successfully to %s", configPath_.c_str());
 }
@@ -198,6 +200,10 @@ void ConfigManager::load()
 			}
 		} else if (line.rfind("broadcaster_user_id=", 0) == 0) {
 			broadcasterUserId_ = line.substr(std::string("broadcaster_user_id=").size());
+		} else if (line.rfind("broadcaster_login=", 0) == 0) {
+			broadcasterLogin_ = line.substr(std::string("broadcaster_login=").size());
+		} else if (line.rfind("broadcaster_display_name=", 0) == 0) {
+			streamerDisplayName_ = line.substr(std::string("broadcaster_display_name=").size());
 		}
 	}
 }
@@ -263,4 +269,34 @@ bool ConfigManager::isTokenExpired() const
 	if (expiresAt_ <= 0)
 		return true;
 	return expiresAt_ <= now;
+}
+
+void ConfigManager::setBroadcasterUserId(const std::string &id)
+{
+	broadcasterUserId_ = id;
+}
+
+void ConfigManager::setBroadcasterLogin(const std::string &login)
+{
+	broadcasterLogin_ = login;
+}
+
+void ConfigManager::setBroadcasterDisplayName(const std::string &name)
+{
+	streamerDisplayName_ = name;
+}
+
+const std::string &ConfigManager::getBroadcasterUserId() const
+{
+	return broadcasterUserId_;
+}
+
+const std::string &ConfigManager::getBroadcasterLogin() const
+{
+	return broadcasterLogin_;
+}
+
+const std::string &ConfigManager::getBroadcasterDisplayName() const
+{
+	return streamerDisplayName_;
 }
