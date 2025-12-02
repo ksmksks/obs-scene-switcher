@@ -7,6 +7,7 @@
 #include "ui/plugin_dock.hpp"
 #include "obs/config_manager.hpp"
 #include "oauth/http_server.hpp"
+#include "eventsub/eventsub_client.hpp"
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -156,18 +157,41 @@ void ObsSceneSwitcher::logout()
 
 void ObsSceneSwitcher::connectEventSub()
 {
-	blog(LOG_INFO, "[SceneSwitcher] connectEventSub()");
+	if (!authenticated_) {
+		blog(LOG_WARNING, "[SceneSwitcher] connectEventSub() called while not authenticated");
+		return;
+	}
 
-	// TODO: EventSub 接続
+	auto &cfg = ConfigManager::instance();
+
+	const std::string &accessToken = cfg.getAccessToken();
+	const std::string &broadcasterId = cfg.getBroadcasterUserId();
+	const std::string &clientId = cfg.getClientId();
+
+	if (accessToken.empty() || broadcasterId.empty() || clientId.empty()) {
+		blog(LOG_WARNING,
+		     "[SceneSwitcher] connectEventSub() missing auth info "
+		     "(access=%s, user_id=%s, client_id=%s)",
+		     accessToken.empty() ? "empty" : "ok", broadcasterId.empty() ? "empty" : "ok",
+		     clientId.empty() ? "empty" : "ok");
+		return;
+	}
+
+	blog(LOG_INFO, "[SceneSwitcher] Starting EventSub client");
+	EventSubClient::instance().start(accessToken, broadcasterId, clientId);
+
 	eventsubConnected_ = true;
 }
 
 void ObsSceneSwitcher::disconnectEventSub()
 {
 	blog(LOG_INFO, "[SceneSwitcher] disconnectEventSub()");
-	eventsubConnected_ = false;
 
-	// TODO: WebSocket 切断
+	if (!eventsubConnected_) return;
+        eventsubConnected_ = false;
+
+	// EventSub クライアントの停止
+	EventSubClient::instance().stop();
 }
 
 void ObsSceneSwitcher::onRedemptionReceived(const std::string &rewardId, const std::string &userName,

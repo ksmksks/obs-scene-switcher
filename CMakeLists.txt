@@ -51,7 +51,7 @@ set_source_files_properties(
     src/oauth/twitch_oauth.cpp
     src/oauth/twitch_oauth.hpp
     src/eventsub/eventsub_client.cpp
-    src/eventsub/eventsub_client.h
+    src/eventsub/eventsub_client.hpp
     src/eventsub/twitch_event_types.h
     src/obs/scene_switcher.cpp
     src/obs/scene_switcher.hpp
@@ -88,7 +88,7 @@ target_sources(${CMAKE_PROJECT_NAME}
 
         # EventSub
         src/eventsub/eventsub_client.cpp
-        src/eventsub/eventsub_client.h
+        src/eventsub/eventsub_client.hpp
         src/eventsub/twitch_event_types.h
 
         # OBS

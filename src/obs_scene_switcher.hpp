@@ -10,7 +10,7 @@
 #include <QObject>
 
 #include "obs/scene_switcher.hpp"
-#include "eventsub/eventsub_client.h"
+#include "eventsub/eventsub_client.hpp"
 #include "oauth/twitch_oauth.hpp"
 
 class TwitchOAuth;
