@@ -47,6 +47,9 @@ public:
 	void onRedemptionReceived(const std::string &rewardId, const std::string &userName,
 				  const std::string &userInput);
 
+        // リワード一覧取得
+	const std::vector<RewardInfo> &getRewardList() const { return rewardList_; }
+
 	// OBS シーン切り替え
 	void switchScene(const std::string &sceneName);
 
@@ -77,6 +80,8 @@ private:
 	std::string refreshToken_;
 	long expiresAt_ = 0;
 	std::string broadcasterUserId_;
+
+        std::vector<RewardInfo> rewardList_;
 
 	// Reward → Scene のマッピング
 	std::unordered_map<std::string, std::string> rewardSceneMap_;

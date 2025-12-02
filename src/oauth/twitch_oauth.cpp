@@ -276,3 +276,72 @@ bool TwitchOAuth::exchangeCodeForToken(const std::string &code)
 
 	return true;
 }
+
+std::vector<RewardInfo> TwitchOAuth::fetchChannelRewards()
+{
+	std::vector<RewardInfo> list;
+
+	auto &cfg = ConfigManager::instance();
+	clientId_ = cfg.getClientId();
+	accessToken_ = cfg.getAccessToken();
+	std::string broadcasterUserId = cfg.getBroadcasterUserId();
+
+	if (clientId_.empty() || accessToken_.empty() || broadcasterUserId.empty()) {
+		blog(LOG_ERROR, "[OAuth] Missing credentials for fetchChannelRewards()");
+		return list;
+	}
+
+	HINTERNET hInet = InternetOpenA("TwitchOAuth", INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
+	if (!hInet)
+		return list;
+
+	HINTERNET hConnect =
+		InternetConnectA(hInet, "api.twitch.tv", 443, nullptr, nullptr, INTERNET_SERVICE_HTTP, 0, 0);
+	if (!hConnect) {
+		InternetCloseHandle(hInet);
+		return list;
+	}
+
+	std::string path = "/helix/channel_points/custom_rewards?broadcaster_id=" + broadcasterUserId;
+
+	HINTERNET hRequest = HttpOpenRequestA(hConnect, "GET", path.c_str(), NULL, NULL, NULL, INTERNET_FLAG_SECURE, 0);
+
+	std::string headers = "Client-ID: " + clientId_ +
+			      "\r\n"
+			      "Authorization: Bearer " +
+			      accessToken_ + "\r\n";
+
+	if (!HttpSendRequestA(hRequest, headers.c_str(), (DWORD)headers.size(), nullptr, 0)) {
+		blog(LOG_ERROR, "[OAuth] Reward request failed");
+		InternetCloseHandle(hRequest);
+		InternetCloseHandle(hConnect);
+		InternetCloseHandle(hInet);
+		return list;
+	}
+
+	char buffer[8192];
+	DWORD read = 0;
+	std::string response;
+	while (InternetReadFile(hRequest, buffer, sizeof(buffer), &read) && read > 0) {
+		response.append(buffer, read);
+	}
+
+	InternetCloseHandle(hRequest);
+	InternetCloseHandle(hConnect);
+	InternetCloseHandle(hInet);
+
+	auto json = nlohmann::json::parse(response, nullptr, false);
+	if (json.is_discarded() || !json.contains("data"))
+		return list;
+
+	for (auto &r : json["data"]) {
+		RewardInfo info;
+		info.id = r.value("id", "");
+		info.title = r.value("title", "");
+		list.push_back(info);
+	}
+
+	blog(LOG_INFO, "[OAuth] Fetched %zu channel rewards", list.size());
+
+	return list;
+}

@@ -31,7 +31,7 @@ RuleRow::RuleRow(QWidget *parent) : QWidget(parent)
 
 	// リワード
 	rewardBox_ = new QComboBox(this);
-	currentSceneBox_->setSizePolicy(expandPolicy);
+	rewardBox_->setSizePolicy(expandPolicy);
 
 	// → 矢印（文字で対応）
 	QLabel *arrow2Label = new QLabel("→", this);
@@ -89,10 +89,24 @@ void RuleRow::setSceneList(const QList<QString> &scenes)
 	targetSceneBox_->addItems(scenes);
 }
 
-void RuleRow::setRewardList(const QList<QString> &rewards)
+void RuleRow::setRewardList(const std::vector<RewardInfo> &rewards)
 {
+	rewardList_ = rewards;
 	rewardBox_->clear();
-	rewardBox_->addItems(rewards);
+
+	for (auto &r : rewardList_) {
+		// 表示はタイトル、内部データとして ID を保持
+		rewardBox_->addItem(QString::fromStdString(r.title), QString::fromStdString(r.id));
+	}
+}
+
+std::string RuleRow::getSelectedRewardId() const
+{
+	if (!rewardBox_)
+		return "";
+
+	QString id = rewardBox_->currentData().toString();
+	return id.toStdString();
 }
 
 QString RuleRow::currentScene() const

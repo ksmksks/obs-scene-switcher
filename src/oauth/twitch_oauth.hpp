@@ -6,6 +6,11 @@
 #include <string>
 #include <QObject>
 
+struct RewardInfo {
+	std::string id;
+	std::string title;
+};
+
 class TwitchOAuth : public QObject {
 	Q_OBJECT
 public:
@@ -29,6 +34,8 @@ public:
 
 	const std::string &getBroadcasterUserId() const { return broadcasterUserId_; }
 
+	std::vector<RewardInfo> fetchChannelRewards();
+
 private:
 	TwitchOAuth();
 	~TwitchOAuth();
@@ -46,4 +53,6 @@ private:
 	std::string broadcasterUserId_;
 	std::string broadcasterLogin_;
 	std::string displayName_;
+
+	std::vector<std::pair<std::string, std::string>> lastRewards_;
 };

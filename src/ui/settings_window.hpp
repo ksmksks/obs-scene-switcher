@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "../oauth/twitch_oauth.hpp"
 #include <QDialog>
 #include <QStringList>
 #include <QVector>
@@ -27,7 +28,7 @@ public:
 	void setSceneList(const QStringList &scenes);
 
 	// リワード一覧の更新（ルール行に反映）
-	void setRewardList(const QStringList &rewards);
+	void setRewardList(const std::vector<RewardInfo> &rewards);
 
 signals:
 	// 「保存」が押されたあとに通知（ConfigManager 側で拾う想定）
@@ -52,7 +53,7 @@ private:
 
 	// Scene / Reward の候補一覧
 	QStringList sceneList_;
-	QStringList rewardList_;
+	std::vector<RewardInfo> rewardList_;
 
 	// 画面上に並んでいるルール行
 	QVector<RuleRow *> ruleRows_;

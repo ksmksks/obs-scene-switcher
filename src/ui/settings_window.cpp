@@ -4,7 +4,9 @@
 
 #include "settings_window.hpp"
 #include "rule_row.hpp"
+#include "../oauth/twitch_oauth.hpp"
 #include "../obs/scene_switcher.hpp"
+#include "../obs_scene_switcher.hpp"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -72,8 +74,11 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QDialog(parent)
 		sceneList_ = sceneSwitcherTool.getSceneList();
 	}
 
-	// 将来的に、リワード一覧は Twitch API から取得して m_rewardList にセットする想定。
-	// 今は空のままでも動作するようにしておく。
+	// ---- Twitch Reward list を取得 ----
+	{
+		// 初回ロード時にリワード一覧を取得
+		rewardList_ = ObsSceneSwitcher::instance()->getRewardList();
+	}
 
 	// TODO: 設定ファイルからルールを読み込んで行を追加する
 	loadRules();
@@ -90,7 +95,7 @@ void SettingsWindow::setSceneList(const QStringList &scenes)
 	}
 }
 
-void SettingsWindow::setRewardList(const QStringList &rewards)
+void SettingsWindow::setRewardList(const std::vector<RewardInfo> &rewards)
 {
 	rewardList_ = rewards;
 
@@ -118,7 +123,7 @@ void SettingsWindow::addRuleRow()
 	// 事前に取得済みのシーン／リワード一覧を反映
 	if (!sceneList_.isEmpty())
 		row->setSceneList(sceneList_);
-	if (!rewardList_.isEmpty())
+	if (!rewardList_.empty())
 		row->setRewardList(rewardList_);
 
 	rulesLayout_->addWidget(row);

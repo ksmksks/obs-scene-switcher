@@ -35,7 +35,6 @@ public:
 	const std::string &getBroadcasterLogin() const;
 	const std::string &getBroadcasterDisplayName() const;
 
-
 private:
 	ConfigManager();
 	~ConfigManager() = default;

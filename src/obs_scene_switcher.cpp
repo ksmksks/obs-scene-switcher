@@ -98,6 +98,10 @@ void ObsSceneSwitcher::start()
 	// 認証成功
 	authenticated_ = true;
 	emit authenticationSucceeded();
+
+        // リワード一覧更新
+        rewardList_ = TwitchOAuth::instance().fetchChannelRewards();
+
 	connectEventSub();
 }
 
