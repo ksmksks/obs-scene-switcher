@@ -14,7 +14,7 @@ include(helpers)
 add_library(${CMAKE_PROJECT_NAME} MODULE)
 
 find_package(libobs REQUIRED)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::libobs ixwebsocket)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::libobs ixwebsocket bcrypt)
 
 if(ENABLE_FRONTEND_API)
   find_package(obs-frontend-api REQUIRED)
@@ -33,6 +33,10 @@ if(ENABLE_QT)
     PROPERTIES AUTOMOC ON AUTOUIC ON AUTORCC ON
   )
 endif()
+
+# Enable TLS for IXWebSocket
+set(USE_TLS ON CACHE BOOL "Enable TLS support" FORCE)
+set(USE_MBED_TLS ON CACHE BOOL "Use mbed TLS" FORCE)
 
 # IXWebSocket (vendor)
 add_subdirectory(src/vendor/ixwebsocket)

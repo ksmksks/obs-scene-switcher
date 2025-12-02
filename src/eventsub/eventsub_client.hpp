@@ -7,6 +7,9 @@
 #include <string>
 #include <thread>
 
+#include <ixwebsocket/IXWebSocket.h>
+#include <ixwebsocket/IXNetSystem.h>
+
 class EventSubClient {
 public:
 	static EventSubClient &instance();
@@ -21,19 +24,24 @@ public:
 	bool isRunning() const { return running_; }
 
 private:
-	EventSubClient() = default;
+	EventSubClient();
 
 	EventSubClient(const EventSubClient &) = delete;
 	EventSubClient &operator=(const EventSubClient &) = delete;
-	EventSubClient(EventSubClient &&) = delete;
-	EventSubClient &operator=(EventSubClient &&) = delete;
 
-	void runLoop();
+	// WebSocket
+	ix::WebSocket websocket_;
 
-	std::atomic<bool> running_{false};
-	std::thread worker_;
-
+	// 認証情報
 	std::string accessToken_;
 	std::string broadcasterUserId_;
 	std::string clientId_;
+
+	// 状態
+	std::atomic<bool> running_{false};
+	std::atomic<bool> connected_{false};
+
+	// 内部処理
+	void setupHandlers();
+	void connectSocket();
 };
