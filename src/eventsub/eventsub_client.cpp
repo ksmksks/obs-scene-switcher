@@ -5,6 +5,9 @@
 #include "eventsub_client.hpp"
 #include <obs-module.h>
 #include <nlohmann/json.hpp>
+#include <wininet.h>
+
+#pragma comment(lib, "Wininet.lib")
 
 EventSubClient &EventSubClient::instance()
 {
@@ -64,6 +67,88 @@ void EventSubClient::connectSocket()
 	websocket_.start();
 }
 
+nlohmann::json EventSubClient::httpGet(const std::string &url)
+{
+	HINTERNET hInet = InternetOpenA("EventSubClient", INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
+	HINTERNET hConn = InternetConnectA(hInet, "api.twitch.tv", 443, NULL, NULL, INTERNET_SERVICE_HTTP, 0, 0);
+
+	HINTERNET hReq = HttpOpenRequestA(hConn, "GET", url.c_str(), NULL, NULL, NULL, INTERNET_FLAG_SECURE, 0);
+
+	std::string headers = "Client-ID: " + clientId_ + "\r\nAuthorization: Bearer " + accessToken_ + "\r\n";
+
+	HttpSendRequestA(hReq, headers.c_str(), (DWORD)headers.size(), NULL, 0);
+
+	char buf[8192];
+	DWORD read = 0;
+	std::string response;
+
+	while (InternetReadFile(hReq, buf, sizeof(buf), &read) && read > 0)
+		response.append(buf, read);
+
+	InternetCloseHandle(hReq);
+	InternetCloseHandle(hConn);
+	InternetCloseHandle(hInet);
+
+	auto json = nlohmann::json::parse(response, nullptr, false);
+	if (json.is_discarded())
+		return {};
+
+	return json;
+}
+
+bool EventSubClient::httpPost(const std::string &body)
+{
+	HINTERNET hInet = InternetOpenA("EventSubClient", INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
+	HINTERNET hConn = InternetConnectA(hInet, "api.twitch.tv", 443, NULL, NULL, INTERNET_SERVICE_HTTP, 0, 0);
+
+	HINTERNET hReq = HttpOpenRequestA(hConn, "POST", "/helix/eventsub/subscriptions", NULL, NULL, NULL,
+					  INTERNET_FLAG_SECURE, 0);
+
+	std::string headers = "Client-ID: " + clientId_ + "\r\nAuthorization: Bearer " + accessToken_ +
+			      "\r\nContent-Type: application/json\r\n";
+
+	HttpSendRequestA(hReq, headers.c_str(), (DWORD)headers.size(), (LPVOID)body.c_str(), (DWORD)body.size());
+
+	char buf[8192];
+	DWORD read = 0;
+	std::string response;
+
+	while (InternetReadFile(hReq, buf, sizeof(buf), &read) && read > 0)
+		response.append(buf, read);
+
+	InternetCloseHandle(hReq);
+	InternetCloseHandle(hConn);
+	InternetCloseHandle(hInet);
+
+	auto json = nlohmann::json::parse(response, nullptr, false);
+	if (json.is_discarded())
+		return false;
+
+	blog(LOG_INFO, "[EventSub] POST /subscriptions response: %s", response.c_str());
+	return true;
+}
+
+void EventSubClient::ensureSubscription(const std::string &sessionId)
+{
+	blog(LOG_INFO, "[EventSub] Checking subscriptions...");
+
+	nlohmann::json body = {{"type", "channel.channel_points_custom_reward_redemption.add"},
+			       {"version", "1"},
+			       {"condition",
+				{
+					{"broadcaster_user_id", broadcasterUserId_},
+				}},
+			       {"transport",
+				{
+					{"method", "websocket"},
+					{"session_id", sessionId},
+				}}};
+
+	if (!httpPost(body.dump())) {
+		blog(LOG_ERROR, "[EventSub] Failed to create subscription");
+	}
+}
+
 void EventSubClient::setupHandlers()
 {
 	websocket_.setOnMessageCallback([this](const ix::WebSocketMessagePtr &msg) {
@@ -79,15 +164,11 @@ void EventSubClient::setupHandlers()
 					auto type = json["metadata"]["message_type"].get<std::string>();
 
 					if (type == "session_welcome") {
-						blog(LOG_INFO, "[EventSub] Received session_welcome");
-
-						// ★ session_id を取り出す
 						auto sessionId = json["payload"]["session"]["id"].get<std::string>();
-
+						blog(LOG_INFO, "[EventSub] Received session_welcome");
 						blog(LOG_INFO, "[EventSub] session_id = %s", sessionId.c_str());
-						connected_ = true;
 
-						// v0.4.3 で subscription POST をここで行う
+						ensureSubscription(sessionId);
 
 					} else if (type == "notification") {
 						blog(LOG_INFO, "[EventSub] Notification received");

@@ -6,6 +6,7 @@
 #include <atomic>
 #include <string>
 #include <thread>
+#include <nlohmann/json.hpp>
 
 #include <ixwebsocket/IXWebSocket.h>
 #include <ixwebsocket/IXNetSystem.h>
@@ -44,4 +45,9 @@ private:
 	// 内部処理
 	void setupHandlers();
 	void connectSocket();
+
+	void ensureSubscription(const std::string &sessionId);
+
+	nlohmann::json httpGet(const std::string &url);
+	bool httpPost(const std::string &body);
 };
