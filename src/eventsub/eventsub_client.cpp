@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include "eventsub_client.hpp"
+#include "obs_scene_switcher.hpp"
 #include <obs-module.h>
 #include <nlohmann/json.hpp>
 #include <wininet.h>
@@ -172,7 +173,25 @@ void EventSubClient::setupHandlers()
 
 					} else if (type == "notification") {
 						blog(LOG_INFO, "[EventSub] Notification received");
-						// v0.4.4 で redemption イベントを処理
+
+						try {
+							const auto &event = json["payload"]["event"];
+
+							std::string rewardId = event["reward"]["id"].get<std::string>();
+							std::string userName = event["user_name"].get<std::string>();
+							std::string userInput = event.value("user_input", "");
+
+							blog(LOG_INFO,
+							     "[EventSub] Redemption: reward_id=%s user=%s input=%s",
+							     rewardId.c_str(), userName.c_str(), userInput.c_str());
+
+							// SceneSwitcher に通知
+							ObsSceneSwitcher::instance()->onRedemptionReceived(
+								rewardId, userName, userInput);
+
+						} catch (...) {
+							blog(LOG_ERROR, "[EventSub] Failed to parse redemption event");
+						}
 					} else if (type == "session_keepalive") {
 						blog(LOG_DEBUG, "[EventSub] KeepAlive received");
 					} else if (type == "session_reconnect") {
