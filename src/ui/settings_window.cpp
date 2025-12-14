@@ -6,8 +6,10 @@
 #include "rule_row.hpp"
 #include "../oauth/twitch_oauth.hpp"
 #include "../obs/scene_switcher.hpp"
+#include "../obs/config_manager.hpp"
 #include "../obs_scene_switcher.hpp"
 
+#include <obs-module.h>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -152,6 +154,8 @@ void SettingsWindow::onSaveClicked()
 	saveRules();
 
 	emit rulesSaved();
+        
+	accept();
 }
 
 void SettingsWindow::onCloseClicked()
@@ -172,20 +176,32 @@ void SettingsWindow::loadRules()
 
 void SettingsWindow::saveRules()
 {
-	// FIXME: ConfigManager 実装後に、ここで
-	//  ruleRows を走査して
-	//    row->currentScene()
-	//    row->reward()
-	//    row->targetScene()
-	//    row->revertSeconds()
-	//  をまとめて保存する。
-	//
-	// 例:
-	//   for (RuleRow *row : ruleRows_) {
-	//       QString current = row->currentScene();
-	//       QString reward  = row->reward();
-	//       QString target  = row->targetScene();
-	//       int seconds     = row->revertSeconds();
-	//       ...
-	//   }
+	auto &cfg = ConfigManager::instance();
+	cfg.clearRewardSceneMap();
+
+	std::unordered_map<std::string, std::string> map;
+
+	for (RuleRow *row : ruleRows_) {
+		if (!row)
+			continue;
+
+		const std::string rewardId = row->rewardId();
+		const std::string targetScene = row->targetScene().toStdString();
+
+		if (rewardId.empty() || targetScene.empty())
+			continue;
+
+		map[rewardId] = targetScene;
+
+		blog(LOG_DEBUG, "[Settings] Rule: reward_id=%s -> scene=%s", rewardId.c_str(), targetScene.c_str());
+	}
+
+	// ObsSceneSwitcher に即時反映
+	ObsSceneSwitcher::instance()->setRewardSceneMap(map);
+
+	for (const auto &[rewardId, scene] : map) {
+		cfg.setRewardScene(rewardId, scene);
+	}
+
+	cfg.save();
 }

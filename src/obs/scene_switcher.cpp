@@ -37,5 +37,20 @@ QStringList SceneSwitcher::getSceneList()
 void SceneSwitcher::switchScene(const std::string &sceneName)
 {
 	blog(LOG_INFO, "[SceneSwitcher] switchScene(%s)", sceneName.c_str());
-	// TODO: obs_frontend_set_current_scene
+
+	obs_frontend_source_list scenes = {};
+	obs_frontend_get_scenes(&scenes);
+
+	for (size_t i = 0; i < scenes.sources.num; i++) {
+		obs_source_t *src = scenes.sources.array[i];
+		const char *name = obs_source_get_name(src);
+
+		if (sceneName == name) {
+			obs_frontend_set_current_scene(src);
+			blog(LOG_INFO, "[SceneSwitcher] Scene switched to %s", name);
+			break;
+		}
+	}
+
+	obs_frontend_source_list_free(&scenes);
 }

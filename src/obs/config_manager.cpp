@@ -305,3 +305,18 @@ const std::string &ConfigManager::getBroadcasterDisplayName() const
 {
 	return streamerDisplayName_;
 }
+
+void ConfigManager::setRewardScene(const std::string &rewardId, const std::string &sceneName)
+{
+	rewardMapping_[rewardId] = sceneName;
+}
+
+const std::unordered_map<std::string, std::string> &ConfigManager::getRewardSceneMap() const
+{
+	return rewardMapping_;
+}
+
+void ConfigManager::clearRewardSceneMap()
+{
+	rewardMapping_.clear();
+}

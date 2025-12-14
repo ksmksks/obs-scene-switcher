@@ -40,6 +40,8 @@ void ObsSceneSwitcher::destroy()
 ObsSceneSwitcher::ObsSceneSwitcher()
 {
 	blog(LOG_INFO, "[SceneSwitcher] Initialized");
+
+	sceneSwitcher_ = std::make_unique<SceneSwitcher>();
 }
 
 ObsSceneSwitcher::~ObsSceneSwitcher()
@@ -74,6 +76,10 @@ void ObsSceneSwitcher::start()
 	loadConfig();
 
 	auto &cfg = ConfigManager::instance();
+	setRewardSceneMap(cfg.getRewardSceneMap());
+
+	blog(LOG_INFO, "[SceneSwitcher] Loaded %zu reward rules from config", cfg.getRewardSceneMap().size());
+
 
         // 初回 or 未設定
 	if (!cfg.isAuthValid()) {
@@ -212,8 +218,15 @@ void ObsSceneSwitcher::onRedemptionReceived(const std::string &rewardId, const s
 void ObsSceneSwitcher::switchScene(const std::string &sceneName)
 {
 	blog(LOG_INFO, "[SceneSwitcher] Switching scene to: %s", sceneName.c_str());
+        
+	sceneSwitcher_->switchScene(sceneName);
+}
 
-	// TODO: obs-frontend-api でシーン切り替え
+void ObsSceneSwitcher::setRewardSceneMap(const std::unordered_map<std::string, std::string> &map)
+{
+	rewardSceneMap_ = map;
+
+	blog(LOG_INFO, "[SceneSwitcher] Reward → Scene map updated (%zu entries)", rewardSceneMap_.size());
 }
 
 void ObsSceneSwitcher::loadConfig()

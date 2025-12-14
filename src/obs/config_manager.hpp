@@ -35,6 +35,10 @@ public:
 	const std::string &getBroadcasterLogin() const;
 	const std::string &getBroadcasterDisplayName() const;
 
+	void setRewardScene(const std::string &rewardId, const std::string &sceneName);
+	const std::unordered_map<std::string, std::string> &getRewardSceneMap() const;
+	void clearRewardSceneMap();
+
 private:
 	ConfigManager();
 	~ConfigManager() = default;

@@ -21,6 +21,7 @@ public:
 
 	QString currentScene() const;
 	QString reward() const;
+	std::string rewardId() const;
 	QString targetScene() const;
 	int revertSeconds() const;
 

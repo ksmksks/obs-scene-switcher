@@ -94,9 +94,10 @@ void RuleRow::setRewardList(const std::vector<RewardInfo> &rewards)
 	rewardList_ = rewards;
 	rewardBox_->clear();
 
-	for (auto &r : rewardList_) {
-		// 表示はタイトル、内部データとして ID を保持
-		rewardBox_->addItem(QString::fromStdString(r.title), QString::fromStdString(r.id));
+	for (const auto &reward : rewards) {
+		// 表示：名前
+		// 内部データ：ID
+		rewardBox_->addItem(QString::fromStdString(reward.title), QString::fromStdString(reward.id));
 	}
 }
 
@@ -127,4 +128,12 @@ QString RuleRow::targetScene() const
 int RuleRow::revertSeconds() const
 {
 	return revertSpin_->value();
+}
+
+std::string RuleRow::rewardId() const
+{
+	if (!rewardBox_)
+		return "";
+
+	return rewardBox_->currentData().toString().toStdString();
 }
