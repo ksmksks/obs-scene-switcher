@@ -12,6 +12,7 @@
 #include "obs/scene_switcher.hpp"
 #include "eventsub/eventsub_client.hpp"
 #include "oauth/twitch_oauth.hpp"
+#include "ui/rule_row.hpp"
 
 class TwitchOAuth;
 class EventSubClient;
@@ -53,7 +54,7 @@ public:
 	// OBS シーン切り替え
 	void switchScene(const std::string &sceneName);
 
-	void setRewardSceneMap(const std::unordered_map<std::string, std::string> &map);
+	void setRewardRuleMap(const std::unordered_map<std::string, RewardRule> &map);
 
 	// 設定
 	void loadConfig();
@@ -86,7 +87,7 @@ private:
         std::vector<RewardInfo> rewardList_;
 
 	// Reward → Scene のマッピング
-	std::unordered_map<std::string, std::string> rewardSceneMap_;
+	std::unordered_map<std::string, RewardRule> rewardSceneMap_;
 
 	std::unique_ptr<SceneSwitcher> sceneSwitcher_;
 };

@@ -137,3 +137,11 @@ std::string RuleRow::rewardId() const
 
 	return rewardBox_->currentData().toString().toStdString();
 }
+
+RewardRule RuleRow::rule() const
+{
+	RewardRule r;
+	r.targetScene = targetSceneBox_->currentText().toStdString();
+	r.revertSeconds = revertSpin_->value();
+	return r;
+}

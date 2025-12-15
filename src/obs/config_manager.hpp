@@ -6,6 +6,8 @@
 #include <string>
 #include <unordered_map>
 
+#include "ui/rule_row.hpp"
+
 class ConfigManager {
 public:
 	static ConfigManager &instance();
@@ -35,8 +37,8 @@ public:
 	const std::string &getBroadcasterLogin() const;
 	const std::string &getBroadcasterDisplayName() const;
 
-	void setRewardScene(const std::string &rewardId, const std::string &sceneName);
-	const std::unordered_map<std::string, std::string> &getRewardSceneMap() const;
+	//void setRewardScene(const std::string &rewardId, const std::string &sceneName);
+	const std::unordered_map<std::string, RuleRow> &getRewardSceneMap() const;
 	void clearRewardSceneMap();
 
 private:
@@ -58,5 +60,5 @@ private:
 	std::string broadcasterLogin_;
 	std::string streamerDisplayName_;
 
-	std::unordered_map<std::string, std::string> rewardMapping_;
+	std::unordered_map<std::string, RuleRow> rewardMapping_;
 };

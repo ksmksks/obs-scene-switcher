@@ -10,6 +10,11 @@
 #include <QPushButton>
 #include <QList>
 
+struct RewardRule {
+	std::string targetScene;
+	int revertSeconds = 0;
+};
+
 class RuleRow : public QWidget {
 	Q_OBJECT
 
@@ -24,6 +29,7 @@ public:
 	std::string rewardId() const;
 	QString targetScene() const;
 	int revertSeconds() const;
+	RewardRule rule() const;
 
 	std::string getSelectedRewardId() const;
 

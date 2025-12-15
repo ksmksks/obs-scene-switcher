@@ -179,29 +179,30 @@ void SettingsWindow::saveRules()
 	auto &cfg = ConfigManager::instance();
 	cfg.clearRewardSceneMap();
 
-	std::unordered_map<std::string, std::string> map;
+	std::unordered_map<std::string, RewardRule> map;
 
 	for (RuleRow *row : ruleRows_) {
 		if (!row)
 			continue;
 
 		const std::string rewardId = row->rewardId();
-		const std::string targetScene = row->targetScene().toStdString();
+		RewardRule rule = row->rule();
 
-		if (rewardId.empty() || targetScene.empty())
+		if (rewardId.empty() || rule.targetScene.empty())
 			continue;
 
-		map[rewardId] = targetScene;
+		map[rewardId] = rule;
 
-		blog(LOG_DEBUG, "[Settings] Rule: reward_id=%s -> scene=%s", rewardId.c_str(), targetScene.c_str());
+		blog(LOG_INFO, "[Settings] Rule saved: reward_id=%s -> scene=%s (revert=%d sec)", rewardId.c_str(),
+		     rule.targetScene.c_str(), rule.revertSeconds);
 	}
 
 	// ObsSceneSwitcher に即時反映
-	ObsSceneSwitcher::instance()->setRewardSceneMap(map);
+	ObsSceneSwitcher::instance()->setRewardRuleMap(map);
 
-	for (const auto &[rewardId, scene] : map) {
-		cfg.setRewardScene(rewardId, scene);
-	}
+	//for (const auto &[rewardId, scene] : map) {
+	//	cfg.setRewardScene(rewardId, scene);
+	//}
 
 	cfg.save();
 }

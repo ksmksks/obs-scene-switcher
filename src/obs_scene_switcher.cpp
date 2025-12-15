@@ -76,7 +76,7 @@ void ObsSceneSwitcher::start()
 	loadConfig();
 
 	auto &cfg = ConfigManager::instance();
-	setRewardSceneMap(cfg.getRewardSceneMap());
+	//setRewardRuleMap(cfg.getRewardSceneMap());
 
 	blog(LOG_INFO, "[SceneSwitcher] Loaded %zu reward rules from config", cfg.getRewardSceneMap().size());
 
@@ -210,9 +210,15 @@ void ObsSceneSwitcher::onRedemptionReceived(const std::string &rewardId, const s
 	blog(LOG_INFO, "[SceneSwitcher] Redemption received: %s", rewardId.c_str());
 
 	auto it = rewardSceneMap_.find(rewardId);
-	if (it != rewardSceneMap_.end()) {
-		switchScene(it->second);
-	}
+	if (it == rewardSceneMap_.end())
+		return;
+
+	const RewardRule &rule = it->second;
+
+	blog(LOG_INFO, "[SceneSwitcher] Switching to %s (revert in %d sec)", rule.targetScene.c_str(),
+	     rule.revertSeconds);
+
+	switchScene(rule.targetScene);
 }
 
 void ObsSceneSwitcher::switchScene(const std::string &sceneName)
@@ -222,11 +228,11 @@ void ObsSceneSwitcher::switchScene(const std::string &sceneName)
 	sceneSwitcher_->switchScene(sceneName);
 }
 
-void ObsSceneSwitcher::setRewardSceneMap(const std::unordered_map<std::string, std::string> &map)
+void ObsSceneSwitcher::setRewardRuleMap(const std::unordered_map<std::string, RewardRule> &map)
 {
 	rewardSceneMap_ = map;
 
-	blog(LOG_INFO, "[SceneSwitcher] Reward → Scene map updated (%zu entries)", rewardSceneMap_.size());
+	blog(LOG_INFO, "[SceneSwitcher] Reward rules updated (%zu entries)", rewardSceneMap_.size());
 }
 
 void ObsSceneSwitcher::loadConfig()
