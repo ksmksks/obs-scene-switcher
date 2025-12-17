@@ -6,9 +6,11 @@
 #include <obs-frontend-api.h>
 #include <obs-module.h>
 
-SceneSwitcher::SceneSwitcher()
+SceneSwitcher::SceneSwitcher(QObject *parent) : QObject(parent)
 {
 	blog(LOG_INFO, "[SceneSwitcher] ctor");
+	revertTimer_.setSingleShot(true);
+	connect(&revertTimer_, &QTimer::timeout, this, &SceneSwitcher::revertScene);
 }
 
 SceneSwitcher::~SceneSwitcher()
@@ -53,4 +55,38 @@ void SceneSwitcher::switchScene(const std::string &sceneName)
 	}
 
 	obs_frontend_source_list_free(&scenes);
+}
+
+void SceneSwitcher::switchWithRevert(const std::string &targetScene, int revertSeconds)
+{
+	originalScene_ = getCurrentSceneName();
+
+	blog(LOG_INFO, "[SceneSwitcher] Switching to '%s'; will revert to '%s' in %d seconds", targetScene.c_str(),
+	     originalScene_.c_str(), revertSeconds);
+
+	switchScene(targetScene);
+
+	if (revertSeconds > 0) {
+		revertTimer_.start(revertSeconds * 1000);
+	}
+}
+
+std::string SceneSwitcher::getCurrentSceneName() const
+{
+	obs_source_t *current = obs_frontend_get_current_scene();
+	if (!current)
+		return {};
+
+	const char *name = obs_source_get_name(current);
+	std::string sceneName = name ? name : "";
+
+	obs_source_release(current);
+	return sceneName;
+}
+
+void SceneSwitcher::revertScene()
+{
+	blog(LOG_INFO, "[SceneSwitcher] Reverting to previous scene: %s", originalScene_.c_str());
+
+	switchScene(originalScene_);
 }

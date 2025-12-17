@@ -44,10 +44,6 @@ public:
 	void setPluginDock(PluginDock *dock) { pluginDock_ = dock; }
 	PluginDock *getPluginDock() const { return pluginDock_; }
 
-	// EventSub 通知コールバック
-	void onRedemptionReceived(const std::string &rewardId, const std::string &userName,
-				  const std::string &userInput);
-
         // リワード一覧取得
 	const std::vector<RewardInfo> &getRewardList() const { return rewardList_; }
 
@@ -64,6 +60,11 @@ public:
 signals:
 	void authenticationSucceeded();
 	void authenticationFailed();
+
+public slots:
+	// EventSub 通知コールバック
+	void onRedemptionReceived(const std::string &rewardId, const std::string &userName,
+				  const std::string &userInput);
 
 private:
 	ObsSceneSwitcher();

@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #pragma once
+#include <QObject>
 #include <atomic>
 #include <string>
 #include <thread>
@@ -11,7 +12,8 @@
 #include <ixwebsocket/IXWebSocket.h>
 #include <ixwebsocket/IXNetSystem.h>
 
-class EventSubClient {
+class EventSubClient : public QObject {
+	Q_OBJECT
 public:
 	static EventSubClient &instance();
 	~EventSubClient();
@@ -23,6 +25,9 @@ public:
 	void stop();
 
 	bool isRunning() const { return running_; }
+
+signals:
+	void redemptionReceived(const std::string &rewardId, const std::string &userName, const std::string &userInput);
 
 private:
 	EventSubClient();

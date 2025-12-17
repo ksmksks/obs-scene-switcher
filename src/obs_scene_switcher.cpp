@@ -41,7 +41,7 @@ ObsSceneSwitcher::ObsSceneSwitcher()
 {
 	blog(LOG_INFO, "[SceneSwitcher] Initialized");
 
-	sceneSwitcher_ = std::make_unique<SceneSwitcher>();
+	sceneSwitcher_ = std::make_unique<SceneSwitcher>(this);
 }
 
 ObsSceneSwitcher::~ObsSceneSwitcher()
@@ -68,6 +68,11 @@ void ObsSceneSwitcher::start()
 			 &ObsSceneSwitcher::authenticationFailed,
 			 dock, // PluginDock (UI側)
 			 &PluginDock::onAuthenticationFailed,
+			 Qt::QueuedConnection // UIスレッド保証
+	);
+	QObject::connect(&EventSubClient::instance(),
+                         &EventSubClient::redemptionReceived, this,
+			 &ObsSceneSwitcher::onRedemptionReceived,
 			 Qt::QueuedConnection // UIスレッド保証
 	);
 
@@ -215,10 +220,7 @@ void ObsSceneSwitcher::onRedemptionReceived(const std::string &rewardId, const s
 
 	const RewardRule &rule = it->second;
 
-	blog(LOG_INFO, "[SceneSwitcher] Switching to %s (revert in %d sec)", rule.targetScene.c_str(),
-	     rule.revertSeconds);
-
-	switchScene(rule.targetScene);
+	sceneSwitcher_->switchWithRevert(rule.targetScene, rule.revertSeconds);
 }
 
 void ObsSceneSwitcher::switchScene(const std::string &sceneName)

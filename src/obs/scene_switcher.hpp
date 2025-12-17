@@ -4,13 +4,25 @@
 
 #pragma once
 #include <QStringList>
+#include <QTimer>
 
-class SceneSwitcher {
+class SceneSwitcher : public QObject {
+	Q_OBJECT
 public:
-	SceneSwitcher();
+	explicit SceneSwitcher(QObject *parent = nullptr);
 	~SceneSwitcher();
 
 	QStringList getSceneList();
 
 	void switchScene(const std::string &sceneName);
+	void switchWithRevert(const std::string &targetScene, int revertSeconds);
+
+	std::string getCurrentSceneName() const;
+
+private slots:
+	void revertScene();
+
+private:
+	std::string originalScene_;
+	QTimer revertTimer_;
 };

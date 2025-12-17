@@ -186,8 +186,7 @@ void EventSubClient::setupHandlers()
 							     rewardId.c_str(), userName.c_str(), userInput.c_str());
 
 							// SceneSwitcher に通知
-							ObsSceneSwitcher::instance()->onRedemptionReceived(
-								rewardId, userName, userInput);
+							emit redemptionReceived(rewardId, userName, userInput);
 
 						} catch (...) {
 							blog(LOG_ERROR, "[EventSub] Failed to parse redemption event");
