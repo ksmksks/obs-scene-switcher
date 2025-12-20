@@ -6,7 +6,9 @@
 #include <QObject>
 #include <atomic>
 #include <string>
+#include <mutex>
 #include <thread>
+#include <chrono>
 #include <nlohmann/json.hpp>
 
 #include <ixwebsocket/IXWebSocket.h>
@@ -16,12 +18,11 @@ class EventSubClient : public QObject {
 	Q_OBJECT
 public:
 	static EventSubClient &instance();
-	~EventSubClient();
 
 	// EventSub開始
 	void start(const std::string &accessToken, const std::string &broadcasterUserId, const std::string &clientId);
 
-	// スレッド停止
+	// EventSub停止
 	void stop();
 
 	bool isRunning() const { return running_; }
@@ -31,9 +32,27 @@ signals:
 
 private:
 	EventSubClient();
+	~EventSubClient() override = default;
 
 	EventSubClient(const EventSubClient &) = delete;
 	EventSubClient &operator=(const EventSubClient &) = delete;
+
+	nlohmann::json httpGet(const std::string &url);
+	bool httpPost(const std::string &body);
+
+	// 接続関連
+	void setupHandlers();
+	void connectSocket(const std::string &url = {});
+	std::string defaultWebSocketUrl() const;
+
+	// 受信処理
+	void handleMessage(const std::string &msg);
+	void handleSessionWelcome(const nlohmann::json &j);
+	void handleSessionReconnect(const nlohmann::json &j);
+	void handleNotification(const nlohmann::json &j);
+
+	// Subscription
+	void ensureSubscription(const std::string &sessionId);
 
 	// WebSocket
 	ix::WebSocket websocket_;
@@ -47,12 +66,12 @@ private:
 	std::atomic<bool> running_{false};
 	std::atomic<bool> connected_{false};
 
-	// 内部処理
-	void setupHandlers();
-	void connectSocket();
+	// 現在の WS URL
+	std::mutex urlMutex_;
+	std::string currentWsUrl_;
 
-	void ensureSubscription(const std::string &sessionId);
-
-	nlohmann::json httpGet(const std::string &url);
-	bool httpPost(const std::string &body);
+	// session_reconnect 制御
+	std::mutex reconnectMutex_;
+	std::string pendingReconnectUrl_;
+	std::atomic<bool> reconnectRequested_{false};
 };

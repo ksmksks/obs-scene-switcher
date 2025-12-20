@@ -5,10 +5,13 @@
 #include "eventsub_client.hpp"
 #include "obs_scene_switcher.hpp"
 #include <obs-module.h>
-#include <nlohmann/json.hpp>
 #include <wininet.h>
 
 #pragma comment(lib, "Wininet.lib")
+
+using json = nlohmann::json;
+
+static constexpr const char *kDefaultWsUrl = "wss://eventsub.wss.twitch.tv/ws";
 
 EventSubClient &EventSubClient::instance()
 {
@@ -21,9 +24,9 @@ EventSubClient::EventSubClient()
 	ix::initNetSystem();
 }
 
-EventSubClient::~EventSubClient()
+std::string EventSubClient::defaultWebSocketUrl() const
 {
-	stop();
+	return kDefaultWsUrl;
 }
 
 void EventSubClient::start(const std::string &accessToken, const std::string &broadcasterUserId,
@@ -39,9 +42,12 @@ void EventSubClient::start(const std::string &accessToken, const std::string &br
 	clientId_ = clientId;
 
 	running_ = true;
+	connected_ = false;
 
 	blog(LOG_INFO, "[EventSub] Starting WebSocket...");
-	connectSocket();
+	connectSocket(); // default URL
+	setupHandlers();
+	websocket_.start();
 }
 
 void EventSubClient::stop()
@@ -51,6 +57,13 @@ void EventSubClient::stop()
 
 	blog(LOG_INFO, "[EventSub] Stopping WebSocket...");
 	running_ = false;
+	connected_ = false;
+
+        {
+		std::lock_guard<std::mutex> lk(reconnectMutex_);
+		pendingReconnectUrl_.clear();
+		reconnectRequested_ = false;
+	}
 
 	try {
 		websocket_.stop();
@@ -59,16 +72,23 @@ void EventSubClient::stop()
 	}
 }
 
-void EventSubClient::connectSocket()
+void EventSubClient::connectSocket(const std::string &url)
 {
-	websocket_.setUrl("wss://eventsub.wss.twitch.tv/ws");
+	const std::string wsUrl = url.empty() ? defaultWebSocketUrl() : url;
 
-	setupHandlers();
+	{
+		std::lock_guard<std::mutex> lk(urlMutex_);
+		currentWsUrl_ = wsUrl;
+	}
 
-	websocket_.start();
+	websocket_.setUrl(wsUrl);
+
+	// ログ量/keepalive調整
+	websocket_.disablePerMessageDeflate();
+	websocket_.setPingInterval(25); // twitch keepalive より少し短めに ping
 }
 
-nlohmann::json EventSubClient::httpGet(const std::string &url)
+json EventSubClient::httpGet(const std::string &url)
 {
 	HINTERNET hInet = InternetOpenA("EventSubClient", INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
 	HINTERNET hConn = InternetConnectA(hInet, "api.twitch.tv", 443, NULL, NULL, INTERNET_SERVICE_HTTP, 0, 0);
@@ -90,7 +110,7 @@ nlohmann::json EventSubClient::httpGet(const std::string &url)
 	InternetCloseHandle(hConn);
 	InternetCloseHandle(hInet);
 
-	auto json = nlohmann::json::parse(response, nullptr, false);
+	auto json = json::parse(response, nullptr, false);
 	if (json.is_discarded())
 		return {};
 
@@ -121,7 +141,7 @@ bool EventSubClient::httpPost(const std::string &body)
 	InternetCloseHandle(hConn);
 	InternetCloseHandle(hInet);
 
-	auto json = nlohmann::json::parse(response, nullptr, false);
+	auto json = json::parse(response, nullptr, false);
 	if (json.is_discarded())
 		return false;
 
@@ -133,7 +153,7 @@ void EventSubClient::ensureSubscription(const std::string &sessionId)
 {
 	blog(LOG_INFO, "[EventSub] Checking subscriptions...");
 
-	nlohmann::json body = {{"type", "channel.channel_points_custom_reward_redemption.add"},
+	json body = {{"type", "channel.channel_points_custom_reward_redemption.add"},
 			       {"version", "1"},
 			       {"condition",
 				{
@@ -153,75 +173,150 @@ void EventSubClient::ensureSubscription(const std::string &sessionId)
 void EventSubClient::setupHandlers()
 {
 	websocket_.setOnMessageCallback([this](const ix::WebSocketMessagePtr &msg) {
-		if (!running_)
+		if (!msg)
 			return;
 
-		if (msg->type == ix::WebSocketMessageType::Message) {
+		switch (msg->type) {
+		case ix::WebSocketMessageType::Open:
+			connected_ = true;
+			blog(LOG_INFO, "[EventSub] WebSocket opened");
+			break;
 
-			try {
-				auto json = nlohmann::json::parse(msg->str);
+		case ix::WebSocketMessageType::Close:
+			connected_ = false;
+			blog(LOG_INFO, "[EventSub] WebSocket closed");
 
-				if (json["metadata"].contains("message_type")) {
-					auto type = json["metadata"]["message_type"].get<std::string>();
+			if (!running_)
+				return;
 
-					if (type == "session_welcome") {
-						auto sessionId = json["payload"]["session"]["id"].get<std::string>();
-						blog(LOG_INFO, "[EventSub] Received session_welcome");
-						blog(LOG_INFO, "[EventSub] session_id = %s", sessionId.c_str());
+	                {
+				std::string nextUrl;
 
-						ensureSubscription(sessionId);
-
-					} else if (type == "notification") {
-						blog(LOG_INFO, "[EventSub] Notification received");
-
-						try {
-							const auto &event = json["payload"]["event"];
-
-							std::string rewardId = event["reward"]["id"].get<std::string>();
-							std::string userName = event["user_name"].get<std::string>();
-							std::string userInput = event.value("user_input", "");
-
-							blog(LOG_INFO,
-							     "[EventSub] Redemption: reward_id=%s user=%s input=%s",
-							     rewardId.c_str(), userName.c_str(), userInput.c_str());
-
-							// SceneSwitcher に通知
-							emit redemptionReceived(rewardId, userName, userInput);
-
-						} catch (...) {
-							blog(LOG_ERROR, "[EventSub] Failed to parse redemption event");
-						}
-					} else if (type == "session_keepalive") {
-						blog(LOG_DEBUG, "[EventSub] KeepAlive received");
-					} else if (type == "session_reconnect") {
-						blog(LOG_WARNING, "[EventSub] Session reconnect requested");
-
-						auto newUrl =
-							json["payload"]["session"]["reconnect_url"].get<std::string>();
-
-						websocket_.stop();
-						websocket_.setUrl(newUrl);
-						websocket_.start();
+				// Twitch指定 reconnect_url があれば優先
+				{
+					std::lock_guard<std::mutex> lk(reconnectMutex_);
+					if (reconnectRequested_) {
+						nextUrl = pendingReconnectUrl_;
+						pendingReconnectUrl_.clear();
+						reconnectRequested_ = false;
 					}
 				}
 
-			} catch (...) {
-				blog(LOG_ERROR, "[EventSub] JSON parse error");
+				if (nextUrl.empty()) {
+					blog(LOG_INFO, "[EventSub] Attempting reconnect...");
+					std::lock_guard<std::mutex> lk(urlMutex_);
+					nextUrl = currentWsUrl_;
+				} else {
+					blog(LOG_INFO, "[EventSub] Reconnecting using Twitch-provided reconnect_url");
+				}
+
+				connectSocket(nextUrl);
+
+				// コールバック内で start() しない（再入・二重start回避）
+				std::thread([this]() {
+					std::this_thread::sleep_for(std::chrono::milliseconds(200));
+					if (running_) {
+						websocket_.start();
+					}
+				}).detach();
 			}
+			break;
 
-		} else if (msg->type == ix::WebSocketMessageType::Open) {
-			blog(LOG_INFO, "[EventSub] WebSocket opened");
-
-		} else if (msg->type == ix::WebSocketMessageType::Close) {
-			blog(LOG_WARNING, "[EventSub] WebSocket closed");
-
-			if (running_) {
-				blog(LOG_WARNING, "[EventSub] Attempting reconnect...");
-				websocket_.start();
+		case ix::WebSocketMessageType::Message:
+			// Twitch EventSub はテキスト JSON
+			if (!msg->str.empty()) {
+				handleMessage(msg->str);
 			}
+			break;
 
-		} else if (msg->type == ix::WebSocketMessageType::Error) {
-			blog(LOG_ERROR, "[EventSub] Error: %s", msg->errorInfo.reason.c_str());
+		case ix::WebSocketMessageType::Error:
+			blog(LOG_ERROR, "[EventSub] WebSocket error: %s", msg->errorInfo.reason.c_str());
+			break;
+
+		default:
+			break;
 		}
 	});
+}
+
+void EventSubClient::handleMessage(const std::string &msg)
+{
+	try {
+		auto json = json::parse(msg);
+
+		const std::string type = json["metadata"].value("message_type", "");
+		if (type.empty())
+			return;
+
+		if (type == "session_welcome") {
+			blog(LOG_INFO, "[EventSub] Received session_welcome");
+			handleSessionWelcome(json);
+		} else if (type == "session_reconnect") {
+			// ここで start/stop しない（フラグ立てて close 側で繋ぎ直す）
+			blog(LOG_WARNING, "[EventSub] Session reconnect requested");
+			handleSessionReconnect(json);
+		} else if (type == "notification") {
+			handleNotification(json);
+		} else if (type == "session_keepalive") {
+			// 必要ならログ
+		} else if (type == "revocation") {
+			blog(LOG_WARNING, "[EventSub] Subscription revoked");
+		} else {
+			// 他の message_type は無視
+		}
+
+	} catch (const json::parse_error &e) {
+		// "JSON parse error"の理由が分かるようにログ改善
+		blog(LOG_ERROR, "[EventSub] JSON parse error: %s", e.what());
+	} catch (const std::exception &e) {
+		blog(LOG_ERROR, "[EventSub] Exception while handling message: %s", e.what());
+	}
+}
+
+void EventSubClient::handleSessionWelcome(const json &json)
+{
+	const std::string sessionId = json["payload"]["session"].value("id", "");
+	blog(LOG_INFO, "[EventSub] session_id = %s", sessionId.c_str());
+
+	ensureSubscription(sessionId);
+}
+
+void EventSubClient::handleSessionReconnect(const json &json)
+{
+	const std::string reconnectUrl = json["payload"]["session"].value("reconnect_url", "");
+	if (reconnectUrl.empty()) {
+		blog(LOG_ERROR, "[EventSub] session_reconnect missing reconnect_url");
+		return;
+	}
+
+	{
+		std::lock_guard<std::mutex> lk(reconnectMutex_);
+		pendingReconnectUrl_ = reconnectUrl;
+		reconnectRequested_ = true;
+	}
+
+	// stop() は呼ばない。close で切断だけ要求し、Closeイベント側で繋ぎ直す。
+	blog(LOG_INFO, "[EventSub] Closing current WebSocket to switch to reconnect_url...");
+	websocket_.close();
+}
+
+void EventSubClient::handleNotification(const json &json)
+{
+	// redemption 通知の取り出し
+	try {
+		const auto &event = json["payload"]["event"];
+
+		const std::string rewardId = event["reward"].value("id", "");
+		const std::string userName = event.value("user_name", "");
+		const std::string userInput = event.value("user_input", "");
+
+		blog(LOG_INFO, "[EventSub] Notification received");
+		blog(LOG_INFO, "[EventSub] Redemption: reward_id=%s user=%s input=%s", rewardId.c_str(),
+		     userName.c_str(), userInput.c_str());
+
+		emit redemptionReceived(rewardId, userName, userInput);
+
+	} catch (const std::exception &e) {
+		blog(LOG_ERROR, "[EventSub] Failed to parse notification payload: %s", e.what());
+	}
 }
