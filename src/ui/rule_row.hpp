@@ -3,17 +3,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #pragma once
-#include "../oauth/twitch_oauth.hpp"
+#include "oauth/twitch_oauth.hpp"
+#include "core/reward_rule.hpp"
 #include <QWidget>
 #include <QComboBox>
 #include <QSpinBox>
 #include <QPushButton>
 #include <QList>
-
-struct RewardRule {
-	std::string targetScene;
-	int revertSeconds = 0;
-};
 
 class RuleRow : public QWidget {
 	Q_OBJECT
@@ -32,12 +28,13 @@ public:
 	RewardRule rule() const;
 
 	std::string getSelectedRewardId() const;
+	void setRule(const RewardRule &rule);
 
 signals:
 	void removeRequested(RuleRow *self);
 
 private:
-	QComboBox *currentSceneBox_;
+	QComboBox *originalSceneBox_;
 	QComboBox *rewardBox_;
 	QComboBox *targetSceneBox_;
 	QSpinBox *revertSpin_;

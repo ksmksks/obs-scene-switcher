@@ -50,7 +50,7 @@ public:
 	// OBS シーン切り替え
 	void switchScene(const std::string &sceneName);
 
-	void setRewardRuleMap(const std::unordered_map<std::string, RewardRule> &map);
+	void setRewardRules(const std::vector<RewardRule> &rules);
 
 	// 設定
 	void loadConfig();
@@ -88,7 +88,7 @@ private:
         std::vector<RewardInfo> rewardList_;
 
 	// Reward → Scene のマッピング
-	std::unordered_map<std::string, RewardRule> rewardSceneMap_;
+	std::unordered_map<std::string, RewardRule> rewardRules_;
 
 	std::unique_ptr<SceneSwitcher> sceneSwitcher_;
 };

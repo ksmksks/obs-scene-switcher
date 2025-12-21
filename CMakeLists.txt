@@ -75,6 +75,7 @@ set_source_files_properties(
     src/ui/settings_window.hpp
     src/ui/rule_row.cpp
     src/ui/rule_row.hpp
+    src/core/reward_rule.hpp
     PROPERTIES LANGUAGE CXX
 )
 
@@ -93,7 +94,6 @@ target_sources(${CMAKE_PROJECT_NAME}
         # EventSub
         src/eventsub/eventsub_client.cpp
         src/eventsub/eventsub_client.hpp
-        src/eventsub/twitch_event_types.h
 
         # OBS
         src/obs/scene_switcher.cpp
@@ -116,6 +116,9 @@ target_sources(${CMAKE_PROJECT_NAME}
         src/ui/settings_window.hpp
         src/ui/rule_row.cpp
         src/ui/rule_row.hpp
+
+        # Core
+        src/core/reward_rule.hpp
 )
 
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})

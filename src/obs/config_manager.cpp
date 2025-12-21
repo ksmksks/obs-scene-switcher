@@ -5,6 +5,7 @@
 #include "config_manager.hpp"
 
 #include <obs-module.h>
+#include <nlohmann/json.hpp>
 #include <fstream>
 #include <sstream>
 #include <filesystem>
@@ -12,6 +13,8 @@
 #include <windows.h>
 #include <wincrypt.h>
 #pragma comment(lib, "Crypt32.lib")
+
+using json = nlohmann::json;
 
 ConfigManager &ConfigManager::instance()
 {
@@ -165,6 +168,15 @@ void ConfigManager::save()
 	ofs << "broadcaster_user_id=" << broadcasterUserId_ << "\n";
 	ofs << "broadcaster_login=" << broadcasterLogin_ << "\n";
 	ofs << "broadcaster_display_name=" << streamerDisplayName_ << "\n";
+	for (const auto &r : rewardRules_) {
+		json j{
+			{"reward_id", r.rewardId},
+			{"source_scene", r.sourceScene},
+			{"target_scene", r.targetScene},
+			{"revert_seconds", r.revertSeconds},
+		};
+		ofs << "rule=" << j.dump() << "\n";
+	}
 
 	blog(LOG_DEBUG, "[ConfigManager] Settings saved successfully to %s", configPath_.c_str());
 }
@@ -174,12 +186,19 @@ void ConfigManager::load()
 	if (configPath_.empty())
 		return;
 
+	rewardRules_.clear();
+
 	std::ifstream ifs(configPath_);
-	if (!ifs.is_open())
+	if (!ifs.is_open()) {
+		blog(LOG_INFO, "[ConfigManager] Config not found: %s", configPath_.c_str());
 		return;
+	}
 
 	std::string line;
 	while (std::getline(ifs, line)) {
+		if (line.empty())
+			continue;
+
 		if (line.rfind("client_id=", 0) == 0) {
 			clientId_ = line.substr(std::string("client_id=").size());
 		} else if (line.rfind("client_secret=", 0) == 0) {
@@ -204,6 +223,25 @@ void ConfigManager::load()
 			broadcasterLogin_ = line.substr(std::string("broadcaster_login=").size());
 		} else if (line.rfind("broadcaster_display_name=", 0) == 0) {
 			streamerDisplayName_ = line.substr(std::string("broadcaster_display_name=").size());
+		} else if (line.rfind("rule=", 0) == 0) {
+			const std::string raw = line.substr(std::string("rule=").size());
+
+			auto j = json::parse(raw, nullptr, false);
+			if (j.is_discarded()) {
+				blog(LOG_ERROR, "[ConfigManager] Failed to parse rule JSON: %s", raw.c_str());
+				continue;
+			}
+
+			RewardRule r;
+			r.rewardId = j.value("reward_id", "");
+			r.sourceScene = j.value("source_scene", "");
+			r.targetScene = j.value("target_scene", "");
+			r.revertSeconds = j.value("revert_seconds", 0);
+
+			if (r.rewardId.empty() || r.targetScene.empty())
+				continue;
+
+			rewardRules_.push_back(std::move(r));
 		}
 	}
 }
@@ -306,17 +344,17 @@ const std::string &ConfigManager::getBroadcasterDisplayName() const
 	return streamerDisplayName_;
 }
 
-//void ConfigManager::setRewardScene(const std::string &rewardId, const std::string &sceneName)
-//{
-//	rewardMapping_[rewardId] = sceneName;
-//}
-
-const std::unordered_map<std::string, RuleRow> &ConfigManager::getRewardSceneMap() const
+void ConfigManager::setRewardRules(const std::vector<RewardRule> &rules)
 {
-	return rewardMapping_;
+	rewardRules_ = rules;
 }
 
-void ConfigManager::clearRewardSceneMap()
+const std::vector<RewardRule> &ConfigManager::getRewardRules() const
 {
-	rewardMapping_.clear();
+	return rewardRules_;
+}
+
+void ConfigManager::clearRewardRules()
+{
+	rewardRules_.clear();
 }

@@ -19,8 +19,8 @@ RuleRow::RuleRow(QWidget *parent) : QWidget(parent)
 	auto fixedPolicy = QSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
 	// 現在シーン
-	currentSceneBox_ = new QComboBox(this);
-	currentSceneBox_->setSizePolicy(expandPolicy);
+	originalSceneBox_ = new QComboBox(this);
+	originalSceneBox_->setSizePolicy(expandPolicy);
 
 	// → 矢印（文字で対応）
 	QLabel *arrow1Label = new QLabel("→", this);
@@ -64,7 +64,7 @@ RuleRow::RuleRow(QWidget *parent) : QWidget(parent)
 	removeButton_->setFixedWidth(60);
 	removeButton_->setSizePolicy(fixedPolicy);
 
-	layout->addWidget(currentSceneBox_);
+	layout->addWidget(originalSceneBox_);
 	layout->addWidget(arrow1Label);
 	layout->addWidget(rewardBox_);
 	layout->addWidget(arrow2Label);
@@ -83,9 +83,9 @@ RuleRow::RuleRow(QWidget *parent) : QWidget(parent)
 
 void RuleRow::setSceneList(const QList<QString> &scenes)
 {
-	currentSceneBox_->clear();
+	originalSceneBox_->clear();
 	targetSceneBox_->clear();
-	currentSceneBox_->addItems(scenes);
+	originalSceneBox_->addItems(scenes);
 	targetSceneBox_->addItems(scenes);
 }
 
@@ -112,7 +112,7 @@ std::string RuleRow::getSelectedRewardId() const
 
 QString RuleRow::currentScene() const
 {
-	return currentSceneBox_->currentText();
+	return originalSceneBox_->currentText();
 }
 
 QString RuleRow::reward() const
@@ -144,4 +144,19 @@ RewardRule RuleRow::rule() const
 	r.targetScene = targetSceneBox_->currentText().toStdString();
 	r.revertSeconds = revertSpin_->value();
 	return r;
+}
+
+void RuleRow::setRule(const RewardRule &rule)
+{
+	originalSceneBox_->setCurrentText(QString::fromStdString(rule.sourceScene));
+
+	for (int i = 0; i < rewardBox_->count(); ++i) {
+		if (rewardBox_->itemData(i).toString().toStdString() == rule.rewardId) {
+			rewardBox_->setCurrentIndex(i);
+			break;
+		}
+	}
+
+	targetSceneBox_->setCurrentText(QString::fromStdString(rule.targetScene));
+	revertSpin_->setValue(rule.revertSeconds);
 }

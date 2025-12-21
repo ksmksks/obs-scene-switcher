@@ -81,9 +81,7 @@ void ObsSceneSwitcher::start()
 	loadConfig();
 
 	auto &cfg = ConfigManager::instance();
-	//setRewardRuleMap(cfg.getRewardSceneMap());
-
-	blog(LOG_INFO, "[SceneSwitcher] Loaded %zu reward rules from config", cfg.getRewardSceneMap().size());
+	blog(LOG_INFO, "[SceneSwitcher] Loaded %zu reward rules from config", cfg.getRewardRules().size());
 
 
         // 初回 or 未設定
@@ -214,8 +212,8 @@ void ObsSceneSwitcher::onRedemptionReceived(const std::string &rewardId, const s
 {
 	blog(LOG_INFO, "[SceneSwitcher] Redemption received: %s", rewardId.c_str());
 
-	auto it = rewardSceneMap_.find(rewardId);
-	if (it == rewardSceneMap_.end())
+	auto it = rewardRules_.find(rewardId);
+	if (it == rewardRules_.end())
 		return;
 
 	const RewardRule &rule = it->second;
@@ -230,11 +228,15 @@ void ObsSceneSwitcher::switchScene(const std::string &sceneName)
 	sceneSwitcher_->switchScene(sceneName);
 }
 
-void ObsSceneSwitcher::setRewardRuleMap(const std::unordered_map<std::string, RewardRule> &map)
+void ObsSceneSwitcher::setRewardRules(const std::vector<RewardRule> &rules)
 {
-	rewardSceneMap_ = map;
+	rewardRules_.clear();
 
-	blog(LOG_INFO, "[SceneSwitcher] Reward rules updated (%zu entries)", rewardSceneMap_.size());
+	for (const auto &rule : rules) {
+		rewardRules_[rule.rewardId] = rule;
+	}
+
+	blog(LOG_INFO, "[SceneSwitcher] Loaded %zu rules", rewardRules_.size());
 }
 
 void ObsSceneSwitcher::loadConfig()

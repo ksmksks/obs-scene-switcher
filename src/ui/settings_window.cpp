@@ -165,44 +165,57 @@ void SettingsWindow::onCloseClicked()
 
 void SettingsWindow::loadRules()
 {
-	// FIXME: ConfigManager 実装後に、ここで
-	//  - 保存済みルールを読み込む
-	//  - 必要な数だけ addRuleRow() して値をセット
-	//
-	// といった処理を書く。
-	//
-	// 今は「ルール0件スタート」で問題なければ何もしない。
+	qDeleteAll(ruleRows_);
+	ruleRows_.clear();
+
+	if (rulesLayout_->count() > 0) {
+		QLayoutItem *last = rulesLayout_->itemAt(rulesLayout_->count() - 1);
+		if (last && last->spacerItem()) {
+			delete rulesLayout_->takeAt(rulesLayout_->count() - 1);
+		}
+	}
+
+	auto &cfg = ConfigManager::instance();
+	for (const auto &rule : cfg.getRewardRules()) {
+		auto *row = new RuleRow(this);
+
+		row->setSceneList(sceneList_);
+		row->setRewardList(rewardList_);
+		row->setRule(rule);
+
+		rulesLayout_->addWidget(row);
+		ruleRows_.append(row);
+	}
+
+	rulesLayout_->addStretch();
 }
 
 void SettingsWindow::saveRules()
 {
-	auto &cfg = ConfigManager::instance();
-	cfg.clearRewardSceneMap();
-
-	std::unordered_map<std::string, RewardRule> map;
+	std::vector<RewardRule> rules;
 
 	for (RuleRow *row : ruleRows_) {
 		if (!row)
 			continue;
 
-		const std::string rewardId = row->rewardId();
-		RewardRule rule = row->rule();
+		RewardRule rule;
+		rule.rewardId = row->rewardId();
+		rule.sourceScene = row->currentScene().toStdString();
+		rule.targetScene = row->targetScene().toStdString();
+		rule.revertSeconds = row->revertSeconds();
 
-		if (rewardId.empty() || rule.targetScene.empty())
+		if (rule.rewardId.empty() || rule.targetScene.empty())
 			continue;
 
-		map[rewardId] = rule;
-
-		blog(LOG_INFO, "[Settings] Rule saved: reward_id=%s -> scene=%s (revert=%d sec)", rewardId.c_str(),
-		     rule.targetScene.c_str(), rule.revertSeconds);
+		rules.push_back(std::move(rule));
 	}
 
-	// ObsSceneSwitcher に即時反映
-	ObsSceneSwitcher::instance()->setRewardRuleMap(map);
-
-	//for (const auto &[rewardId, scene] : map) {
-	//	cfg.setRewardScene(rewardId, scene);
-	//}
-
+	auto &cfg = ConfigManager::instance();
+	cfg.setRewardRules(rules);
 	cfg.save();
+
+	blog(LOG_INFO, "[Settings] Saved %zu rules", rules.size());
+
+	// ObsSceneSwitcher に即時反映
+	ObsSceneSwitcher::instance()->setRewardRules(rules);
 }

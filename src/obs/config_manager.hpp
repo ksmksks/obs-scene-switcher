@@ -7,6 +7,7 @@
 #include <unordered_map>
 
 #include "ui/rule_row.hpp"
+#include "core/reward_rule.hpp"
 
 class ConfigManager {
 public:
@@ -37,9 +38,9 @@ public:
 	const std::string &getBroadcasterLogin() const;
 	const std::string &getBroadcasterDisplayName() const;
 
-	//void setRewardScene(const std::string &rewardId, const std::string &sceneName);
-	const std::unordered_map<std::string, RuleRow> &getRewardSceneMap() const;
-	void clearRewardSceneMap();
+	const std::vector<RewardRule> &getRewardRules() const;
+	void setRewardRules(const std::vector<RewardRule> &rules);
+	void clearRewardRules();
 
 private:
 	ConfigManager();
@@ -60,5 +61,5 @@ private:
 	std::string broadcasterLogin_;
 	std::string streamerDisplayName_;
 
-	std::unordered_map<std::string, RuleRow> rewardMapping_;
+	std::vector<RewardRule> rewardRules_;
 };
