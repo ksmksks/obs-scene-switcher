@@ -216,9 +216,7 @@ void ObsSceneSwitcher::onRedemptionReceived(const std::string &rewardId, const s
 	if (it == rewardRules_.end())
 		return;
 
-	const RewardRule &rule = it->second;
-
-	sceneSwitcher_->switchWithRevert(rule.targetScene, rule.revertSeconds);
+	sceneSwitcher_->switchWithRevert(it->second);
 }
 
 void ObsSceneSwitcher::switchScene(const std::string &sceneName)

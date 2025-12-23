@@ -10,7 +10,7 @@ SceneSwitcher::SceneSwitcher(QObject *parent) : QObject(parent)
 {
 	blog(LOG_INFO, "[SceneSwitcher] ctor");
 	revertTimer_.setSingleShot(true);
-	connect(&revertTimer_, &QTimer::timeout, this, &SceneSwitcher::revertScene);
+	connect(&revertTimer_, &QTimer::timeout, this, &SceneSwitcher::onRevertTimeout);
 }
 
 SceneSwitcher::~SceneSwitcher()
@@ -57,36 +57,68 @@ void SceneSwitcher::switchScene(const std::string &sceneName)
 	obs_frontend_source_list_free(&scenes);
 }
 
-void SceneSwitcher::switchWithRevert(const std::string &targetScene, int revertSeconds)
+void SceneSwitcher::switchWithRevert(const RewardRule &rule)
 {
-	originalScene_ = getCurrentSceneName();
+	// revertSeconds == 0 → 戻さない
+	const bool hasRevert = rule.revertSeconds > 0;
 
-	blog(LOG_INFO, "[SceneSwitcher] Switching to '%s'; will revert to '%s' in %d seconds", targetScene.c_str(),
-	     originalScene_.c_str(), revertSeconds);
+	switch (state_) {
+	case State::Idle:
+		break;
 
-	switchScene(targetScene);
+	case State::Switched:
+	case State::Reverting:
+		blog(LOG_INFO, "[SceneSwitcher] Suppressed due to active transition");
+		state_ = State::Suppressed;
+		return;
 
-	if (revertSeconds > 0) {
-		revertTimer_.start(revertSeconds * 1000);
+	case State::Suppressed:
+		return;
 	}
+
+	originalScene_ = getCurrentSceneName();
+	currentTargetScene_ = QString::fromStdString(rule.targetScene);
+
+	blog(LOG_INFO, "[SceneSwitcher] Switching to '%s'%s", rule.targetScene.c_str(),
+	     hasRevert ? "" : " (no revert)");
+
+	switchScene(rule.targetScene);
+
+	if (!hasRevert) {
+		state_ = State::Idle;
+		return;
+	}
+
+	state_ = State::Switched;
+
+	revertTimer_.start(rule.revertSeconds * 1000);
 }
 
-std::string SceneSwitcher::getCurrentSceneName() const
+QString SceneSwitcher::getCurrentSceneName() const
 {
 	obs_source_t *current = obs_frontend_get_current_scene();
 	if (!current)
 		return {};
 
 	const char *name = obs_source_get_name(current);
-	std::string sceneName = name ? name : "";
+	QString sceneName = name ? name : "";
 
 	obs_source_release(current);
 	return sceneName;
 }
 
-void SceneSwitcher::revertScene()
+void SceneSwitcher::onRevertTimeout()
 {
-	blog(LOG_INFO, "[SceneSwitcher] Reverting to previous scene: %s", originalScene_.c_str());
+	if (state_ != State::Switched) {
+		state_ = State::Idle;
+		return;
+	}
 
-	switchScene(originalScene_);
+	state_ = State::Reverting;
+
+	blog(LOG_INFO, "[SceneSwitcher] Reverting to previous scene: %s", originalScene_.toStdString().c_str());
+
+	switchScene(originalScene_.toStdString());
+
+	state_ = State::Idle;
 }
