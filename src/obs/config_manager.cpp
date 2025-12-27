@@ -1,4 +1,4 @@
-// obs-scene-switcher plugin
+﻿// obs-scene-switcher plugin
 // Copyright (C) 2025 ksmksks
 // SPDX-License-Identifier: GPL-2.0-or-later
 
@@ -167,7 +167,9 @@ void ConfigManager::save()
 	ofs << "expires_at=" << expiresAt_ << "\n";
 	ofs << "broadcaster_user_id=" << broadcasterUserId_ << "\n";
 	ofs << "broadcaster_login=" << broadcasterLogin_ << "\n";
-	ofs << "broadcaster_display_name=" << streamerDisplayName_ << "\n";
+	ofs << "broadcaster_display_name=" << streamerDisplayName_ << "\n";  // プラグイン有効状態を保存（将来の拡張用）
+	ofs << "plugin_enabled=" << (pluginEnabled_ ? "1" : "0") << "\n";
+	
 	for (const auto &r : rewardRules_) {
 		json j{
 			{"reward_id", r.rewardId},
@@ -223,6 +225,8 @@ void ConfigManager::load()
 			broadcasterLogin_ = line.substr(std::string("broadcaster_login=").size());
 		} else if (line.rfind("broadcaster_display_name=", 0) == 0) {
 			streamerDisplayName_ = line.substr(std::string("broadcaster_display_name=").size());
+		} else if (line.rfind("plugin_enabled=", 0) == 0) {  // 内部フィールドは読み込むが、getPluginEnabled()は常にfalseを返す
+			pluginEnabled_ = (line.substr(std::string("plugin_enabled=").size()) == "1");
 		} else if (line.rfind("rule=", 0) == 0) {
 			const std::string raw = line.substr(std::string("rule=").size());
 
@@ -357,4 +361,9 @@ const std::vector<RewardRule> &ConfigManager::getRewardRules() const
 void ConfigManager::clearRewardRules()
 {
 	rewardRules_.clear();
+}
+
+void ConfigManager::setPluginEnabled(bool enabled)
+{
+	pluginEnabled_ = enabled;
 }

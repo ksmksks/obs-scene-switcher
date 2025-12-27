@@ -1,4 +1,4 @@
-// obs-scene-switcher plugin
+﻿// obs-scene-switcher plugin
 // Copyright (C) 2025 ksmksks
 // SPDX-License-Identifier: GPL-2.0-or-later
 
@@ -40,7 +40,9 @@ public:
 
 	const std::vector<RewardRule> &getRewardRules() const;
 	void setRewardRules(const std::vector<RewardRule> &rules);
-	void clearRewardRules();
+	void clearRewardRules();  // プラグイン有効状態（起動時は常にfalseを返す）
+	bool getPluginEnabled() const { return false; }
+	void setPluginEnabled(bool enabled);
 
 private:
 	ConfigManager();
@@ -61,5 +63,6 @@ private:
 	std::string broadcasterLogin_;
 	std::string streamerDisplayName_;
 
-	std::vector<RewardRule> rewardRules_;
+	std::vector<RewardRule> rewardRules_;  // プラグイン有効状態（内部保持のみ、getPluginEnabled()は常にfalseを返す）
+	bool pluginEnabled_ = false;
 };

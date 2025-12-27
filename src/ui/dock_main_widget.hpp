@@ -1,4 +1,4 @@
-// obs-scene-switcher plugin
+﻿// obs-scene-switcher plugin
 // Copyright (C) 2025 ksmksks
 // SPDX-License-Identifier: GPL-2.0-or-later
 
@@ -9,6 +9,7 @@
 class QLabel;
 class QPushButton;
 class QVBoxLayout;
+class QFrame;
 
 class DockMainWidget : public QWidget {
 	Q_OBJECT
@@ -16,24 +17,41 @@ class DockMainWidget : public QWidget {
 public:
 	explicit DockMainWidget(QWidget *parent = nullptr);
 
-	void updateAuthStatus(const QString &status);
+	// 認証セクション
+	void updateAuthStatus(bool authenticated);
 	void updateUserInfo();
 
-	/// 現在シーン名と残り秒数の表示更新
-	void updateSceneInfo(const QString &sceneName, int remainingSeconds = -1);
+	// 制御セクション
+	void updateEnabledState(bool enabled);
+	void setToggleEnabled(bool canToggle);
+
+	// 状態セクション
+	void updateState(const QString &stateText);
+	void updateCountdown(int seconds);
 
 signals:
 	/// 「設定を開く」ボタン
 	void settingsRequested();
 
-	/// 「テスト切替」ボタン
-	void testSwitchRequested();
+	/// 有効/無効トグル
+	void enableToggleRequested(bool enabled);
+
+	/// ログアウトボタン
+	void logoutRequested();
 
 private:
+	void addSeparator(QVBoxLayout *layout);
+	void applyToggleStyle();
+
+	// 認証セクション
 	QLabel *labelAuthStatus_ = nullptr;
-	QLabel *userLabel_ = nullptr;
-	QLabel *labelScene_;
-	QLabel *labelCountdown_;
-	QPushButton *buttonSettings_;
-	QPushButton *buttonTest_;
+
+	// 状態セクション
+	QLabel *labelState_ = nullptr;
+	QLabel *labelCountdown_ = nullptr;
+
+	// 制御セクション
+	QPushButton *buttonToggleEnabled_ = nullptr;
+	QPushButton *logoutButton_ = nullptr;
+	QPushButton *buttonSettings_ = nullptr;
 };

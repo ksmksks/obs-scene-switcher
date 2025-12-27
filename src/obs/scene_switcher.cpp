@@ -1,4 +1,4 @@
-// obs-scene-switcher plugin
+﻿// obs-scene-switcher plugin
 // Copyright (C) 2025 ksmksks
 // SPDX-License-Identifier: GPL-2.0-or-later
 
@@ -10,7 +10,9 @@ SceneSwitcher::SceneSwitcher(QObject *parent) : QObject(parent)
 {
 	blog(LOG_INFO, "[SceneSwitcher] ctor");
 	revertTimer_.setSingleShot(true);
-	connect(&revertTimer_, &QTimer::timeout, this, &SceneSwitcher::onRevertTimeout);
+	connect(&revertTimer_, &QTimer::timeout, this, &SceneSwitcher::onRevertTimeout);  // カウントダウン更新用タイマー
+	countdownTimer_.setInterval(1000);  // 1秒ごと
+	connect(&countdownTimer_, &QTimer::timeout, this, &SceneSwitcher::onCountdownTick);
 }
 
 SceneSwitcher::~SceneSwitcher()
@@ -70,6 +72,7 @@ void SceneSwitcher::switchWithRevert(const RewardRule &rule)
 	case State::Reverting:
 		blog(LOG_INFO, "[SceneSwitcher] Suppressed due to active transition");
 		state_ = State::Suppressed;
+		emit stateChanged(State::Suppressed);
 		return;
 
 	case State::Suppressed:
@@ -86,12 +89,16 @@ void SceneSwitcher::switchWithRevert(const RewardRule &rule)
 
 	if (!hasRevert) {
 		state_ = State::Idle;
+		emit stateChanged(State::Idle);
 		return;
 	}
 
 	state_ = State::Switched;
+	totalRevertSeconds_ = rule.revertSeconds;
+	emit stateChanged(State::Switched, totalRevertSeconds_);
 
 	revertTimer_.start(rule.revertSeconds * 1000);
+	countdownTimer_.start();  // カウントダウン開始
 }
 
 QString SceneSwitcher::getCurrentSceneName() const
@@ -107,18 +114,34 @@ QString SceneSwitcher::getCurrentSceneName() const
 	return sceneName;
 }
 
+void SceneSwitcher::onCountdownTick()
+{
+	if (state_ != State::Switched)
+		return;
+	
+	int remaining = revertTimer_.remainingTime() / 1000;
+	if (remaining >= 0) {
+		emit stateChanged(State::Switched, remaining);
+	}
+}
+
 void SceneSwitcher::onRevertTimeout()
 {
+	countdownTimer_.stop();  // カウントダウン停止
+	
 	if (state_ != State::Switched) {
 		state_ = State::Idle;
+		emit stateChanged(State::Idle);
 		return;
 	}
 
 	state_ = State::Reverting;
+	emit stateChanged(State::Reverting);
 
 	blog(LOG_INFO, "[SceneSwitcher] Reverting to previous scene: %s", originalScene_.toStdString().c_str());
 
 	switchScene(originalScene_.toStdString());
 
 	state_ = State::Idle;
+	emit stateChanged(State::Idle);
 }

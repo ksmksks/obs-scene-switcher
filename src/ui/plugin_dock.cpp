@@ -40,10 +40,17 @@ PluginDock::PluginDock()
 	layout_->setCurrentWidget(loginWidget_);
 
 	// SettingsWindow のボタンシグナル
-	connect(mainDockWidget_, &DockMainWidget::settingsRequested, this, &PluginDock::onSettingsRequested);
+	connect(mainDockWidget_, &DockMainWidget::settingsRequested, this, &PluginDock::onSettingsRequested);  // 有効/無効トグル
+	connect(mainDockWidget_, &DockMainWidget::enableToggleRequested, [](bool enabled) {
+		ObsSceneSwitcher::instance()->setEnabled(enabled);
+	});  // 有効状態変更の通知を受け取る
+	connect(ObsSceneSwitcher::instance(), &ObsSceneSwitcher::enabledStateChanged,
+	        mainDockWidget_, &DockMainWidget::updateEnabledState);
 
-	QObject::connect(mainDockWidget_, &DockMainWidget::testSwitchRequested, []() {
-		// TODO: テスト用にシーン切り替えを呼ぶ処理
+	// ログアウトボタン
+	connect(mainDockWidget_, &DockMainWidget::logoutRequested, []() {
+		ObsSceneSwitcher::instance()->logout();
+		PluginDock::instance()->showLogin();
 	});
 }
 
@@ -68,8 +75,14 @@ void PluginDock::onAuthenticationSucceeded()
 	this->showMain();
 	blog(LOG_INFO, "[Dock] Switched to MainDockWidget");
 
-	if (mainDockWidget_)
-		mainDockWidget_->updateUserInfo();
+	if (mainDockWidget_) {
+		mainDockWidget_->updateAuthStatus(true);
+		mainDockWidget_->setToggleEnabled(true);
+		
+		// 初期状態は無効（起動時は常に無効）
+		mainDockWidget_->updateEnabledState(false);
+		mainDockWidget_->updateState("⏸ 待機中（無効）");
+	}
 }
 
 void PluginDock::onAuthenticationFailed()
@@ -90,6 +103,13 @@ void PluginDock::onAuthenticationFailed()
 			     tr("Twitch へのログインに失敗しました。\n"
 				"クライアントID / クライアントシークレットや\n"
 				"ネットワーク設定を確認して、再度お試しください。"));
+}
+
+void PluginDock::onLoggedOut()
+{
+	// ログアウト時はエラーダイアログを表示せずにログイン画面に戻る
+	this->showLogin();
+	blog(LOG_INFO, "[Dock] Logged out - switched to LoginWidget");
 }
 
 void PluginDock::onSettingsRequested()
@@ -114,13 +134,11 @@ void PluginDock::showMain()
 	if (layout_ && mainDockWidget_) {
 		layout_->setCurrentWidget(mainDockWidget_);
 
-		auto &cfg = ConfigManager::instance();
-		QString status = "認証状態: ✔ログイン済み";
-
-		// 認証ステータス更新
-		mainDockWidget_->updateAuthStatus(status);
-
-		// ユーザー表示の更新
-		mainDockWidget_->updateUserInfo();
+		mainDockWidget_->updateAuthStatus(true);
+		mainDockWidget_->setToggleEnabled(true);
+		
+		// 初期状態は無効
+		mainDockWidget_->updateEnabledState(false);
+		mainDockWidget_->updateState("⏸ 待機中（無効）");
 	}
 }

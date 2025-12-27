@@ -1,4 +1,4 @@
-/*
+﻿/*
 OBS Scene Switcher Plugin
 Copyright (C) 2025 ksmksks
 

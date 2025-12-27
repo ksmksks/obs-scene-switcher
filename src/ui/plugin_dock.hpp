@@ -25,6 +25,7 @@ public:
 public slots:
 	void onAuthenticationSucceeded();
 	void onAuthenticationFailed();
+	void onLoggedOut();  // ログアウト処理（エラーダイアログなし）
 	void onSettingsRequested();
 
 private:

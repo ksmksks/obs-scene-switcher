@@ -40,12 +40,19 @@ public:
 	void connectEventSub();
 	void disconnectEventSub();
 
+	// プラグイン有効/無効制御
+	void setEnabled(bool enabled);
+	bool isEnabled() const { return pluginEnabled_; }
+
 	// UI
 	void setPluginDock(PluginDock *dock) { pluginDock_ = dock; }
 	PluginDock *getPluginDock() const { return pluginDock_; }
 
         // リワード一覧取得
 	const std::vector<RewardInfo> &getRewardList() const { return rewardList_; }
+	
+	// チャンネルポイント一覧を取得（WebSocket接続不要）
+	void fetchRewardList();
 
 	// OBS シーン切り替え
 	void switchScene(const std::string &sceneName);
@@ -60,13 +67,20 @@ public:
 signals:
 	void authenticationSucceeded();
 	void authenticationFailed();
+	
+	// 有効状態変更通知
+	void enabledStateChanged(bool enabled);
+	void loggedOut();  // ログアウト専用シグナル
 
 public slots:
 	// EventSub 通知コールバック
 	void onRedemptionReceived(const std::string &rewardId, const std::string &userName,
 				  const std::string &userInput);
+	
+	// SceneSwitcher 状態変更
+	void onSceneSwitcherStateChanged(SceneSwitcher::State state, int remainingSeconds = -1);
 
-private:
+	private:
 	ObsSceneSwitcher();
 	~ObsSceneSwitcher();
 
@@ -77,6 +91,9 @@ private:
 	// Twitch Auth 状態
 	bool authenticated_ = false;
 	bool eventsubConnected_ = false;
+	
+	// プラグイン有効状態（起動時は常にfalse）
+	bool pluginEnabled_ = false;
 
 	std::string clientId_;
 	std::string clientSecret_;
