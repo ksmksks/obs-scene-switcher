@@ -286,6 +286,12 @@ void ObsSceneSwitcher::onRedemptionReceived(const std::string &rewardId, const s
 		return;
 	}
 
+	// 現在のシーン名を取得
+	QString currentScene = sceneSwitcher_->getCurrentSceneName();
+	std::string currentSceneStr = currentScene.toStdString();
+	
+	blog(LOG_INFO, "[SceneSwitcher] Current scene: %s", currentSceneStr.c_str());
+
 	// 上から順にルールを検索（最初の有効なマッチを優先）
 	for (const auto &rule : rewardRules_) {
 		if (rule.rewardId != rewardId)
@@ -294,18 +300,31 @@ void ObsSceneSwitcher::onRedemptionReceived(const std::string &rewardId, const s
 		// ルールが無効の場合は次のルールへ（スキップして続行）
 		if (!rule.enabled) {
 			blog(LOG_INFO, "[SceneSwitcher] Rule for reward_id=%s is disabled, skipping to next rule", rewardId.c_str());
-			continue;  // return ではなく continue
+			continue;
+		}
+
+		// ソースシーンのチェック
+		// 空文字列または "Any" の場合は任意のシーンにマッチ
+		bool sourceMatches = rule.sourceScene.empty() || 
+		                     rule.sourceScene == "Any" || 
+		                     rule.sourceScene == currentSceneStr;
+		
+		if (!sourceMatches) {
+			blog(LOG_INFO, "[SceneSwitcher] Source scene mismatch: rule requires '%s', current is '%s'", 
+			     rule.sourceScene.c_str(), currentSceneStr.c_str());
+			continue;
 		}
 
 		blog(LOG_INFO, "[SceneSwitcher] Matched rule: %s -> %s (revert: %d sec)", 
-		     rule.sourceScene.c_str(), rule.targetScene.c_str(), rule.revertSeconds);
+		     rule.sourceScene.empty() || rule.sourceScene == "Any" ? "Any" : rule.sourceScene.c_str(),
+		     rule.targetScene.c_str(), rule.revertSeconds);
 
 		sceneSwitcher_->switchWithRevert(rule);
 		return;  // 最初の有効なルールを実行したら終了
 	}
 
-	blog(LOG_WARNING, "[SceneSwitcher] No enabled rule found for reward_id=%s (total rules: %zu)", 
-	     rewardId.c_str(), rewardRules_.size());
+	blog(LOG_WARNING, "[SceneSwitcher] No matching enabled rule found for reward_id=%s (current scene: %s, total rules: %zu)", 
+	     rewardId.c_str(), currentSceneStr.c_str(), rewardRules_.size());
 }
 
 void ObsSceneSwitcher::switchScene(const std::string &sceneName)

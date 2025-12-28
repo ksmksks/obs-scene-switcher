@@ -106,7 +106,12 @@ void RuleRow::setSceneList(const QList<QString> &scenes)
 {
 	originalSceneBox_->clear();
 	targetSceneBox_->clear();
+	
+	// 現在シーン用のコンボボックスに「任意(Any)」を先頭に追加
+	originalSceneBox_->addItem("任意(Any)", "Any");
 	originalSceneBox_->addItems(scenes);
+	
+	// 切替先シーンには通常のシーンのみ
 	targetSceneBox_->addItems(scenes);
 }
 
@@ -133,6 +138,11 @@ std::string RuleRow::getSelectedRewardId() const
 
 QString RuleRow::currentScene() const
 {
+	// "任意(Any)" が選択されている場合は "Any" を返す
+	QVariant data = originalSceneBox_->currentData();
+	if (data.isValid() && data.toString() == "Any") {
+		return "Any";
+	}
 	return originalSceneBox_->currentText();
 }
 
@@ -180,7 +190,13 @@ void RuleRow::setRule(const RewardRule &rule)
 	if (enabledCheckBox_)
 		enabledCheckBox_->setChecked(rule.enabled);
 
-	originalSceneBox_->setCurrentText(QString::fromStdString(rule.sourceScene));
+	// sourceScene が空または "Any" の場合は「任意(Any)」を選択
+	if (rule.sourceScene.empty() || rule.sourceScene == "Any") {
+		// 「任意(Any)」のインデックスは0
+		originalSceneBox_->setCurrentIndex(0);
+	} else {
+		originalSceneBox_->setCurrentText(QString::fromStdString(rule.sourceScene));
+	}
 
 	for (int i = 0; i < rewardBox_->count(); ++i) {
 		if (rewardBox_->itemData(i).toString().toStdString() == rule.rewardId) {
@@ -192,7 +208,7 @@ void RuleRow::setRule(const RewardRule &rule)
 	targetSceneBox_->setCurrentText(QString::fromStdString(rule.targetScene));
 	revertSpin_->setValue(rule.revertSeconds);
 	
-	updateVisualState();  // 見た目を更新
+	updateVisualState();
 }
 
 void RuleRow::updateVisualState()

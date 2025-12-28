@@ -26,15 +26,15 @@ public:
 	QStringList getSceneList();
 	void switchScene(const std::string &sceneName);
 	void switchWithRevert(const RewardRule &rule);
+	QString getCurrentSceneName() const;
 
 signals:
-	// v0.6.2: シーン名を含む詳細な状態通知
+	// シーン名を含む詳細な状態通知
 	void stateChanged(State newState, int remainingSeconds = -1, 
 	                  const QString &targetScene = QString(), 
 	                  const QString &originalScene = QString());
 
 private:
-	QString getCurrentSceneName() const;
 	void onRevertTimeout();
 	void onCountdownTick();
 

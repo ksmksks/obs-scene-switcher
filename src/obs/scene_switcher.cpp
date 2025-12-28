@@ -61,7 +61,6 @@ void SceneSwitcher::switchScene(const std::string &sceneName)
 
 void SceneSwitcher::switchWithRevert(const RewardRule &rule)
 {
-	// revertSeconds == 0 → 戻さない
 	const bool hasRevert = rule.revertSeconds > 0;
 
 	switch (state_) {
@@ -70,12 +69,22 @@ void SceneSwitcher::switchWithRevert(const RewardRule &rule)
 
 	case State::Switched:
 	case State::Reverting:
+		// 抑制状態を一時的に表示するが、タイマーは継続
 		blog(LOG_INFO, "[SceneSwitcher] Suppressed due to active transition");
-		state_ = State::Suppressed;
-		emit stateChanged(State::Suppressed, -1, currentTargetScene_, originalScene_);
+		emit stateChanged(State::Suppressed, revertTimer_.remainingTime() / 1000, currentTargetScene_,
+				  originalScene_);
+
+		// 一定時間後に Switched 状態に戻す（UI表示のため）
+		QTimer::singleShot(1000, this, [this]() {
+			if (state_ == State::Switched) {
+				int remaining = revertTimer_.remainingTime() / 1000;
+				emit stateChanged(State::Switched, remaining, currentTargetScene_, originalScene_);
+			}
+		});
 		return;
 
 	case State::Suppressed:
+		// 既に抑制中なら何もしない
 		return;
 	}
 
@@ -98,7 +107,7 @@ void SceneSwitcher::switchWithRevert(const RewardRule &rule)
 	emit stateChanged(State::Switched, totalRevertSeconds_, currentTargetScene_, originalScene_);
 
 	revertTimer_.start(rule.revertSeconds * 1000);
-	countdownTimer_.start();  // カウントダウン開始
+	countdownTimer_.start();
 }
 
 QString SceneSwitcher::getCurrentSceneName() const
@@ -116,6 +125,7 @@ QString SceneSwitcher::getCurrentSceneName() const
 
 void SceneSwitcher::onCountdownTick()
 {
+	// Switched 状態の時のみカウントダウンを更新
 	if (state_ != State::Switched)
 		return;
 	
@@ -127,9 +137,10 @@ void SceneSwitcher::onCountdownTick()
 
 void SceneSwitcher::onRevertTimeout()
 {
-	countdownTimer_.stop();  // カウントダウン停止
+	countdownTimer_.stop();
 	
-	if (state_ != State::Switched) {
+	// タイマーが終了した時に Switched 状態でない場合は Idle に戻す
+	if (state_ != State::Switched && state_ != State::Suppressed) {
 		state_ = State::Idle;
 		emit stateChanged(State::Idle);
 		return;
