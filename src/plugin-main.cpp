@@ -1,4 +1,4 @@
-﻿/*
+/*
 OBS Scene Switcher Plugin
 Copyright (C) 2025 ksmksks
 
@@ -36,8 +36,6 @@ void obs_module_unload(void)
 {
 	ObsSceneSwitcher::instance()->stop();
 	ObsSceneSwitcher::destroy();
-
-	obs_log(LOG_INFO, "plugin unloaded");
 }
 
 obs_properties_t *obs_module_properties(void)

@@ -61,19 +61,15 @@ void PluginDock::registerDock()
 	bool ok = obs_frontend_add_dock_by_id("scene_switcher_dock", "Scene Switcher", (void *)dock->getWidget());
 
 	if (!ok) {
-		blog(LOG_ERROR, "[SceneSwitcher] Failed to add dock");
-	} else {
-		blog(LOG_INFO, "[SceneSwitcher] Dock added");
+		blog(LOG_ERROR, "[obs-scene-switcher] Failed to add dock");
 	}
 
-	// SceneSwitcher に Dock を渡しておく
 	ObsSceneSwitcher::instance()->setPluginDock(dock);
 }
 
 void PluginDock::onAuthenticationSucceeded()
 {
 	this->showMain();
-	blog(LOG_INFO, "[Dock] Switched to MainDockWidget");
 
 	if (mainDockWidget_) {
 		mainDockWidget_->updateAuthStatus(true);
@@ -88,13 +84,12 @@ void PluginDock::onAuthenticationSucceeded()
 void PluginDock::onAuthenticationFailed()
 {
 	this->showLogin();
-	blog(LOG_INFO, "[Dock] Switched to LoginWidget");
 
 	auto &cfg = ConfigManager::instance();
 
-        // 初期設定 or アクセストークンが保存されていない → 警告不要
+        // 初期設定 or アクセストークンが保存されていない
 	if (cfg.getClientId().empty() || cfg.getClientSecret().empty()) {
-		blog(LOG_INFO, "[Dock] First startup – no auth warning shown.");
+		blog(LOG_DEBUG, "[obs-scene-switcher] First startup – no auth warning shown.");
 		return;
 	}
 
@@ -109,7 +104,7 @@ void PluginDock::onLoggedOut()
 {
 	// ログアウト時はエラーダイアログを表示せずにログイン画面に戻る
 	this->showLogin();
-	blog(LOG_INFO, "[Dock] Logged out - switched to LoginWidget");
+	blog(LOG_DEBUG, "[obs-scene-switcher] Logged out - switched to LoginWidget");
 }
 
 void PluginDock::onSettingsRequested()

@@ -8,16 +8,14 @@
 
 SceneSwitcher::SceneSwitcher(QObject *parent) : QObject(parent)
 {
-	blog(LOG_INFO, "[SceneSwitcher] ctor");
 	revertTimer_.setSingleShot(true);
-	connect(&revertTimer_, &QTimer::timeout, this, &SceneSwitcher::onRevertTimeout);  // カウントダウン更新用タイマー
-	countdownTimer_.setInterval(1000);  // 1秒ごと
+	connect(&revertTimer_, &QTimer::timeout, this, &SceneSwitcher::onRevertTimeout);
+	countdownTimer_.setInterval(1000);
 	connect(&countdownTimer_, &QTimer::timeout, this, &SceneSwitcher::onCountdownTick);
 }
 
 SceneSwitcher::~SceneSwitcher()
 {
-	blog(LOG_INFO, "[SceneSwitcher] dtor");
 }
 
 QStringList SceneSwitcher::getSceneList()
@@ -40,7 +38,7 @@ QStringList SceneSwitcher::getSceneList()
 
 void SceneSwitcher::switchScene(const std::string &sceneName)
 {
-	blog(LOG_INFO, "[SceneSwitcher] switchScene(%s)", sceneName.c_str());
+	blog(LOG_DEBUG, "[obs-scene-switcher] switchScene(%s)", sceneName.c_str());
 
 	obs_frontend_source_list scenes = {};
 	obs_frontend_get_scenes(&scenes);
@@ -51,7 +49,7 @@ void SceneSwitcher::switchScene(const std::string &sceneName)
 
 		if (sceneName == name) {
 			obs_frontend_set_current_scene(src);
-			blog(LOG_INFO, "[SceneSwitcher] Scene switched to %s", name);
+			blog(LOG_DEBUG, "[obs-scene-switcher] Scene switched to %s", name);
 			break;
 		}
 	}
@@ -70,10 +68,9 @@ void SceneSwitcher::switchWithRevert(const RewardRule &rule)
 	case State::Switched:
 	case State::Reverting:
 		// 抑制状態を一時的に表示するが、タイマーは継続
-		blog(LOG_INFO, "[SceneSwitcher] Suppressed due to active transition");
-		emit stateChanged(State::Suppressed, revertTimer_.remainingTime() / 1000, currentTargetScene_,
-				  originalScene_);
-
+		blog(LOG_DEBUG, "[obs-scene-switcher] Request suppressed - timer continues");
+		emit stateChanged(State::Suppressed, revertTimer_.remainingTime() / 1000, currentTargetScene_, originalScene_);
+		
 		// 一定時間後に Switched 状態に戻す（UI表示のため）
 		QTimer::singleShot(1000, this, [this]() {
 			if (state_ == State::Switched) {
@@ -91,7 +88,7 @@ void SceneSwitcher::switchWithRevert(const RewardRule &rule)
 	originalScene_ = getCurrentSceneName();
 	currentTargetScene_ = QString::fromStdString(rule.targetScene);
 
-	blog(LOG_INFO, "[SceneSwitcher] Switching to '%s'%s", rule.targetScene.c_str(),
+	blog(LOG_DEBUG, "[obs-scene-switcher] Switching to '%s'%s", rule.targetScene.c_str(),
 	     hasRevert ? "" : " (no revert)");
 
 	switchScene(rule.targetScene);
@@ -149,7 +146,7 @@ void SceneSwitcher::onRevertTimeout()
 	state_ = State::Reverting;
 	emit stateChanged(State::Reverting, -1, originalScene_, QString());
 
-	blog(LOG_INFO, "[SceneSwitcher] Reverting to previous scene: %s", originalScene_.toStdString().c_str());
+	blog(LOG_DEBUG, "[obs-scene-switcher] Reverting to previous scene: %s", originalScene_.toStdString().c_str());
 
 	switchScene(originalScene_.toStdString());
 

@@ -40,7 +40,7 @@ void ObsSceneSwitcher::destroy()
 
 ObsSceneSwitcher::ObsSceneSwitcher()
 {
-	blog(LOG_INFO, "[SceneSwitcher] Initialized");
+	blog(LOG_DEBUG, "[obs-scene-switcher] Initialized");
 
 	sceneSwitcher_ = std::make_unique<SceneSwitcher>(this);  // SceneSwitcher の状態変更を UI に転送
 	connect(sceneSwitcher_.get(), &SceneSwitcher::stateChanged, 
@@ -49,12 +49,12 @@ ObsSceneSwitcher::ObsSceneSwitcher()
 
 ObsSceneSwitcher::~ObsSceneSwitcher()
 {
-	blog(LOG_INFO, "[SceneSwitcher] Destroyed");
+	blog(LOG_DEBUG, "[obs-scene-switcher] Destroyed");
 }
 
 void ObsSceneSwitcher::start()
 {
-	blog(LOG_INFO, "[SceneSwitcher] start() called");
+	blog(LOG_DEBUG, "[obs-scene-switcher] Initializing plugin");
 
 	// Dock 生成・登録
 	PluginDock *dock = PluginDock::instance();
@@ -93,12 +93,12 @@ void ObsSceneSwitcher::start()
 	
 	// ルールをロード
 	setRewardRules(cfg.getRewardRules());
-	blog(LOG_INFO, "[SceneSwitcher] Loaded %zu reward rules from config", rewardRules_.size());
+	blog(LOG_DEBUG, "[obs-scene-switcher] Loaded %zu reward rules from config", rewardRules_.size());
 
 
         // 初回 or 未設定
 	if (!cfg.isAuthValid()) {
-		blog(LOG_INFO, "[SceneSwitcher] Initial startup or no auth config");
+		blog(LOG_DEBUG, "[obs-scene-switcher] No valid authentication ");
 		authenticated_ = false;
 		emit authenticationFailed();
 		return;
@@ -106,18 +106,20 @@ void ObsSceneSwitcher::start()
 
 	// 期限切れならトークン更新
 	if (cfg.isTokenExpired()) {
-		blog(LOG_INFO, "[SceneSwitcher] Token expired. Trying refresh.");
+		blog(LOG_DEBUG, "[obs-scene-switcher] Token expired, attempting refresh");
 		if (!TwitchOAuth::instance().refreshAccessToken()) {
-			blog(LOG_ERROR, "[SceneSwitcher] Token refresh failed");
+			blog(LOG_ERROR, "[obs-scene-switcher] Token refresh failed");
 			authenticated_ = false;
 			emit authenticationFailed();
 			return;
 		}
 		cfg.save();
+		blog(LOG_DEBUG, "[obs-scene-switcher] Token refreshed successfully");
 	}
 
 	// 認証成功
 	authenticated_ = true;
+	blog(LOG_DEBUG, "[obs-scene-switcher] Authentication successful");
 	emit authenticationSucceeded();
 	
 	// チャンネルポイント一覧を取得
@@ -126,16 +128,16 @@ void ObsSceneSwitcher::start()
 
 void ObsSceneSwitcher::stop()
 {
-	blog(LOG_INFO, "[SceneSwitcher] stop() called");
+	blog(LOG_DEBUG, "[obs-scene-switcher] Shutting down plugin");
 	disconnectEventSub();
 }
 
 void ObsSceneSwitcher::handleOAuthCallback(const std::string &code)
 {
-	blog(LOG_INFO, "[OAuth] Received code: %s", code.c_str());
+	blog(LOG_DEBUG, "[obs-scene-switcher] Received code: %s", code.c_str());
 
 	if (!TwitchOAuth::instance().exchangeCodeForToken(code)) {
-		blog(LOG_ERROR, "[OAuth] Failed to exchange token");
+		blog(LOG_ERROR, "[obs-scene-switcher] OAuth token exchange failed");
 		return;
 	}
 
@@ -148,7 +150,7 @@ void ObsSceneSwitcher::handleOAuthCallback(const std::string &code)
 
 	saveConfig();
 
-	blog(LOG_INFO, "[OAuth] Authentication success!");
+	blog(LOG_DEBUG, "[obs-scene-switcher] OAuth authentication successful");
 
 	emit authenticationSucceeded();
 	
@@ -158,8 +160,6 @@ void ObsSceneSwitcher::handleOAuthCallback(const std::string &code)
 
 void ObsSceneSwitcher::startOAuthLogin()
 {
-	blog(LOG_INFO, "[SceneSwitcher] startOAuthLogin()");
-
 	// ローカルHTTPサーバー起動して code を受け取れるようにする
 	HttpServer::instance()->start(38915, [this](const std::string &code) { this->handleOAuthCallback(code); });
 
@@ -168,8 +168,6 @@ void ObsSceneSwitcher::startOAuthLogin()
 
 void ObsSceneSwitcher::logout()
 {
-	blog(LOG_INFO, "[SceneSwitcher] logout()");
-
 	// プラグインを無効化（WebSocketを切断）
 	if (pluginEnabled_) {
 		setEnabled(false);
@@ -186,14 +184,13 @@ void ObsSceneSwitcher::logout()
 
 	saveConfig();
 	
-	// ログアウト専用シグナルを送信（エラーダイアログは表示しない）
 	emit loggedOut();
 }
 
 void ObsSceneSwitcher::connectEventSub()
 {
 	if (!authenticated_) {
-		blog(LOG_WARNING, "[SceneSwitcher] connectEventSub() called while not authenticated");
+		blog(LOG_WARNING, "[obs-scene-switcher] Cannot connect EventSub: not authenticated");
 		return;
 	}
 
@@ -204,15 +201,11 @@ void ObsSceneSwitcher::connectEventSub()
 	const std::string &clientId = cfg.getClientId();
 
 	if (accessToken.empty() || broadcasterId.empty() || clientId.empty()) {
-		blog(LOG_WARNING,
-		     "[SceneSwitcher] connectEventSub() missing auth info "
-		     "(access=%s, user_id=%s, client_id=%s)",
-		     accessToken.empty() ? "empty" : "ok", broadcasterId.empty() ? "empty" : "ok",
-		     clientId.empty() ? "empty" : "ok");
+		blog(LOG_WARNING, "[obs-scene-switcher] Cannot connect EventSub: missing credentials");
 		return;
 	}
 
-	blog(LOG_INFO, "[SceneSwitcher] Starting EventSub client");
+	blog(LOG_DEBUG, "[obs-scene-switcher] Connecting to Twitch EventSub");
 	EventSubClient::instance().start(accessToken, broadcasterId, clientId);
 
 	eventsubConnected_ = true;
@@ -220,21 +213,19 @@ void ObsSceneSwitcher::connectEventSub()
 
 void ObsSceneSwitcher::disconnectEventSub()
 {
-	blog(LOG_INFO, "[SceneSwitcher] disconnectEventSub()");
-
 	if (!eventsubConnected_) return;
         eventsubConnected_ = false;
 
-	// EventSub クライアントの停止
+	blog(LOG_DEBUG, "[obs-scene-switcher] Disconnecting from EventSub");
 	EventSubClient::instance().stop();
 }
 
 void ObsSceneSwitcher::setEnabled(bool enabled)
 {
 	if (pluginEnabled_ == enabled)
-		return; // 状態変化なし
+		return;
 
-	blog(LOG_INFO, "[ObsSceneSwitcher] Plugin %s", enabled ? "ENABLED" : "DISABLED");
+	blog(LOG_DEBUG, "[obs-scene-switcher] Plugin %s", enabled ? "enabled" : "disabled");
 
 	if (enabled) {
 		// 認証済みの場合のみ接続
@@ -249,7 +240,7 @@ void ObsSceneSwitcher::setEnabled(bool enabled)
 				}
 			}
 		} else {
-			blog(LOG_WARNING, "[ObsSceneSwitcher] Cannot enable: not authenticated");
+			blog(LOG_WARNING, "[obs-scene-switcher] Cannot enable: not authenticated");
 			pluginEnabled_ = false; // 無効に戻す
 			return;
 		}
@@ -278,11 +269,11 @@ void ObsSceneSwitcher::setEnabled(bool enabled)
 void ObsSceneSwitcher::onRedemptionReceived(const std::string &rewardId, const std::string &userName,
 					    const std::string &userInput)
 {
-	blog(LOG_INFO, "[SceneSwitcher] Redemption received: %s", rewardId.c_str());
+	blog(LOG_DEBUG, "[obs-scene-switcher] Redemption received: %s", rewardId.c_str());
 	
 	// プラグインが無効の場合は無視
 	if (!pluginEnabled_) {
-		blog(LOG_INFO, "[SceneSwitcher] Plugin disabled, ignoring redemption");
+		blog(LOG_DEBUG, "[obs-scene-switcher] Plugin disabled, ignoring redemption");
 		return;
 	}
 
@@ -290,16 +281,16 @@ void ObsSceneSwitcher::onRedemptionReceived(const std::string &rewardId, const s
 	QString currentScene = sceneSwitcher_->getCurrentSceneName();
 	std::string currentSceneStr = currentScene.toStdString();
 	
-	blog(LOG_INFO, "[SceneSwitcher] Current scene: %s", currentSceneStr.c_str());
+	blog(LOG_DEBUG, "[obs-scene-switcher] Current scene: %s", currentSceneStr.c_str());
 
 	// 上から順にルールを検索（最初の有効なマッチを優先）
 	for (const auto &rule : rewardRules_) {
 		if (rule.rewardId != rewardId)
 			continue;
 
-		// ルールが無効の場合は次のルールへ（スキップして続行）
+		// ルールが無効の場合は次のルールへ
 		if (!rule.enabled) {
-			blog(LOG_INFO, "[SceneSwitcher] Rule for reward_id=%s is disabled, skipping to next rule", rewardId.c_str());
+			blog(LOG_DEBUG, "[obs-scene-switcher] Rule for reward_id=%s is disabled, checking to next rule", rewardId.c_str());
 			continue;
 		}
 
@@ -310,12 +301,12 @@ void ObsSceneSwitcher::onRedemptionReceived(const std::string &rewardId, const s
 		                     rule.sourceScene == currentSceneStr;
 		
 		if (!sourceMatches) {
-			blog(LOG_INFO, "[SceneSwitcher] Source scene mismatch: rule requires '%s', current is '%s'", 
+			blog(LOG_DEBUG, "[obs-scene-switcher] Source scene mismatch: rule requires '%s', current is '%s'", 
 			     rule.sourceScene.c_str(), currentSceneStr.c_str());
 			continue;
 		}
 
-		blog(LOG_INFO, "[SceneSwitcher] Matched rule: %s -> %s (revert: %d sec)", 
+		blog(LOG_DEBUG, "[obs-scene-switcher] Matched rule: %s -> %s (revert: %d sec)", 
 		     rule.sourceScene.empty() || rule.sourceScene == "Any" ? "Any" : rule.sourceScene.c_str(),
 		     rule.targetScene.c_str(), rule.revertSeconds);
 
@@ -323,22 +314,22 @@ void ObsSceneSwitcher::onRedemptionReceived(const std::string &rewardId, const s
 		return;  // 最初の有効なルールを実行したら終了
 	}
 
-	blog(LOG_WARNING, "[SceneSwitcher] No matching enabled rule found for reward_id=%s (current scene: %s, total rules: %zu)", 
-	     rewardId.c_str(), currentSceneStr.c_str(), rewardRules_.size());
+	blog(LOG_WARNING, "[obs-scene-switcher] No enabled rule found for reward_id=%s (total rules: %zu)", 
+	     rewardId.c_str(), rewardRules_.size());
 }
 
 void ObsSceneSwitcher::switchScene(const std::string &sceneName)
 {
-	blog(LOG_INFO, "[SceneSwitcher] Switching scene to: %s", sceneName.c_str());
+	blog(LOG_DEBUG, "[obs-scene-switcher] Switching scene to: %s", sceneName.c_str());
         
 	sceneSwitcher_->switchScene(sceneName);
 }
 
 void ObsSceneSwitcher::setRewardRules(const std::vector<RewardRule> &rules)
 {
-	rewardRules_ = rules;  // 順序を保持したまま格納
+	rewardRules_ = rules;
 
-	blog(LOG_INFO, "[SceneSwitcher] Loaded %zu rules", rewardRules_.size());
+	blog(LOG_DEBUG, "[obs-scene-switcher] Loaded %zu rules", rewardRules_.size());
 }
 
 void ObsSceneSwitcher::onSceneSwitcherStateChanged(SceneSwitcher::State state, int remainingSeconds,
@@ -384,8 +375,6 @@ void ObsSceneSwitcher::onSceneSwitcherStateChanged(SceneSwitcher::State state, i
 
 void ObsSceneSwitcher::loadConfig()
 {
-	blog(LOG_INFO, "[SceneSwitcher] loadConfig()");
-
 	auto &cfg = ConfigManager::instance();
 	accessToken_ = cfg.getAccessToken();
 	refreshToken_ = cfg.getRefreshToken();
@@ -394,22 +383,18 @@ void ObsSceneSwitcher::loadConfig()
 
 void ObsSceneSwitcher::fetchRewardList()
 {
-	// 認証済みの場合のみチャンネルポイント一覧を取得
-	// WebSocket接続は不要（Helix API使用）
 	if (!authenticated_) {
-		blog(LOG_WARNING, "[SceneSwitcher] Cannot fetch rewards: not authenticated");
+		blog(LOG_WARNING, "[obs-scene-switcher] Cannot fetch rewards: not authenticated");
 		return;
 	}
 	
-	blog(LOG_INFO, "[SceneSwitcher] Fetching channel rewards list...");
+	blog(LOG_DEBUG, "[obs-scene-switcher] Fetching channel rewards list...");
 	rewardList_ = TwitchOAuth::instance().fetchChannelRewards();
-	blog(LOG_INFO, "[SceneSwitcher] Fetched %zu rewards", rewardList_.size());
+	blog(LOG_DEBUG, "[obs-scene-switcher] Fetched %zu rewards", rewardList_.size());
 }
 
 void ObsSceneSwitcher::saveConfig()
 {
-	blog(LOG_INFO, "[SceneSwitcher] saveConfig()");
-
 	auto &cfg = ConfigManager::instance();
 	cfg.setAccessToken(accessToken_);
 	cfg.setRefreshToken(refreshToken_);
@@ -423,7 +408,7 @@ void ObsSceneSwitcher::reloadAuthConfig()
 	clientId_ = cfg.getClientId();
 	clientSecret_ = cfg.getClientSecret();
 
-	blog(LOG_INFO, "[SceneSwitcher] Auth config loaded (client_id=%s)", clientId_.empty() ? "(empty)" : "*****");
+	blog(LOG_DEBUG, "[obs-scene-switcher] Auth config loaded (client_id=%s)", clientId_.empty() ? "(empty)" : "*****");
 }
 
 extern "C" {

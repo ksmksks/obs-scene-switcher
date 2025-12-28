@@ -220,7 +220,7 @@ void SettingsWindow::saveRules()
 	cfg.setRewardRules(rules);
 	cfg.save();
 
-	blog(LOG_INFO, "[Settings] Saved %zu rules", rules.size());
+	blog(LOG_DEBUG, "[obs-scene-switcher] Saved %zu rules", rules.size());
 
 	// ObsSceneSwitcher に即時反映
 	ObsSceneSwitcher::instance()->setRewardRules(rules);
