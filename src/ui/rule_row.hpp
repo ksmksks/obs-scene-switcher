@@ -1,4 +1,4 @@
-﻿// obs-scene-switcher plugin
+// obs-scene-switcher plugin
 // Copyright (C) 2025 ksmksks
 // SPDX-License-Identifier: GPL-2.0-or-later
 
@@ -9,6 +9,7 @@
 #include <QComboBox>
 #include <QSpinBox>
 #include <QPushButton>
+#include <QCheckBox>
 #include <QList>
 
 class RuleRow : public QWidget {
@@ -25,6 +26,7 @@ public:
 	std::string rewardId() const;
 	QString targetScene() const;
 	int revertSeconds() const;
+	bool enabled() const;  // ルールの有効/無効状態を取得
 	RewardRule rule() const;
 
 	std::string getSelectedRewardId() const;
@@ -34,6 +36,7 @@ signals:
 	void removeRequested(RuleRow *self);
 
 private:
+	QCheckBox *enabledCheckBox_;  // 有効/無効チェックボックス
 	QComboBox *originalSceneBox_;
 	QComboBox *rewardBox_;
 	QComboBox *targetSceneBox_;

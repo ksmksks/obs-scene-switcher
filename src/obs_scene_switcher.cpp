@@ -278,7 +278,9 @@ void ObsSceneSwitcher::setEnabled(bool enabled)
 void ObsSceneSwitcher::onRedemptionReceived(const std::string &rewardId, const std::string &userName,
 					    const std::string &userInput)
 {
-	blog(LOG_INFO, "[SceneSwitcher] Redemption received: %s", rewardId.c_str());  // プラグインが無効の場合は無視
+	blog(LOG_INFO, "[SceneSwitcher] Redemption received: %s", rewardId.c_str());
+	
+	// プラグインが無効の場合は無視
 	if (!pluginEnabled_) {
 		blog(LOG_INFO, "[SceneSwitcher] Plugin disabled, ignoring redemption");
 		return;
@@ -288,6 +290,12 @@ void ObsSceneSwitcher::onRedemptionReceived(const std::string &rewardId, const s
 	if (it == rewardRules_.end()) {
 		blog(LOG_WARNING, "[SceneSwitcher] No rule found for reward_id=%s (total rules: %zu)", 
 		     rewardId.c_str(), rewardRules_.size());
+		return;
+	}
+
+	// ルールが無効の場合は無視
+	if (!it->second.enabled) {
+		blog(LOG_INFO, "[SceneSwitcher] Rule for reward_id=%s is disabled, ignoring", rewardId.c_str());
 		return;
 	}
 

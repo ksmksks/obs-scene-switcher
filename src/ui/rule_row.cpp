@@ -1,4 +1,4 @@
-﻿// obs-scene-switcher plugin
+// obs-scene-switcher plugin
 // Copyright (C) 2025 ksmksks
 // SPDX-License-Identifier: GPL-2.0-or-later
 
@@ -17,6 +17,13 @@ RuleRow::RuleRow(QWidget *parent) : QWidget(parent)
 	// 伸縮可能にするため SizePolicy を設定
 	auto expandPolicy = QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 	auto fixedPolicy = QSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+
+	// 有効/無効チェックボックス
+	enabledCheckBox_ = new QCheckBox(this);
+	enabledCheckBox_->setChecked(true);  // デフォルトは有効
+	enabledCheckBox_->setToolTip("ルールを有効/無効にする");
+	enabledCheckBox_->setFixedWidth(30);
+	enabledCheckBox_->setSizePolicy(fixedPolicy);
 
 	// 現在シーン
 	originalSceneBox_ = new QComboBox(this);
@@ -37,7 +44,7 @@ RuleRow::RuleRow(QWidget *parent) : QWidget(parent)
 	QLabel *arrow2Label = new QLabel("→", this);
 	arrow2Label->setStyleSheet("font-weight: bold; font-size: 14px; color: #d0d0d0;");
 	arrow2Label->setFixedWidth(20);
-	arrow1Label->setSizePolicy(fixedPolicy);
+	arrow2Label->setSizePolicy(fixedPolicy);
 	arrow2Label->setAlignment(Qt::AlignCenter);
 
 	// 切替先シーン
@@ -64,6 +71,7 @@ RuleRow::RuleRow(QWidget *parent) : QWidget(parent)
 	removeButton_->setFixedWidth(60);
 	removeButton_->setSizePolicy(fixedPolicy);
 
+	layout->addWidget(enabledCheckBox_);
 	layout->addWidget(originalSceneBox_);
 	layout->addWidget(arrow1Label);
 	layout->addWidget(rewardBox_);
@@ -74,9 +82,9 @@ RuleRow::RuleRow(QWidget *parent) : QWidget(parent)
 	layout->addWidget(removeButton_);
 
 	// 伸縮はコンボ部分に寄せる
-	layout->setStretch(0, 2); // currentScene
-	layout->setStretch(2, 2); // reward
-	layout->setStretch(4, 2); // targetScene
+	layout->setStretch(1, 2); // currentScene
+	layout->setStretch(3, 2); // reward
+	layout->setStretch(5, 2); // targetScene
 
 	connect(removeButton_, &QPushButton::clicked, [this]() { emit removeRequested(this); });
 }
@@ -130,6 +138,11 @@ int RuleRow::revertSeconds() const
 	return revertSpin_->value();
 }
 
+bool RuleRow::enabled() const
+{
+	return enabledCheckBox_ ? enabledCheckBox_->isChecked() : true;
+}
+
 std::string RuleRow::rewardId() const
 {
 	if (!rewardBox_)
@@ -143,11 +156,15 @@ RewardRule RuleRow::rule() const
 	RewardRule r;
 	r.targetScene = targetSceneBox_->currentText().toStdString();
 	r.revertSeconds = revertSpin_->value();
+	r.enabled = enabled();  // 有効/無効状態を含める
 	return r;
 }
 
 void RuleRow::setRule(const RewardRule &rule)
 {
+	if (enabledCheckBox_)
+		enabledCheckBox_->setChecked(rule.enabled);
+
 	originalSceneBox_->setCurrentText(QString::fromStdString(rule.sourceScene));
 
 	for (int i = 0; i < rewardBox_->count(); ++i) {

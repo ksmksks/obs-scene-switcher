@@ -1,4 +1,4 @@
-﻿// obs-scene-switcher plugin
+// obs-scene-switcher plugin
 // Copyright (C) 2025 ksmksks
 // SPDX-License-Identifier: GPL-2.0-or-later
 
@@ -203,6 +203,7 @@ void SettingsWindow::saveRules()
 		rule.sourceScene = row->currentScene().toStdString();
 		rule.targetScene = row->targetScene().toStdString();
 		rule.revertSeconds = row->revertSeconds();
+		rule.enabled = row->enabled();  // 有効/無効状態を保存
 
 		if (rule.rewardId.empty() || rule.targetScene.empty())
 			continue;

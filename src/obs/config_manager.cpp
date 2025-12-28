@@ -1,4 +1,4 @@
-﻿// obs-scene-switcher plugin
+// obs-scene-switcher plugin
 // Copyright (C) 2025 ksmksks
 // SPDX-License-Identifier: GPL-2.0-or-later
 
@@ -176,6 +176,7 @@ void ConfigManager::save()
 			{"source_scene", r.sourceScene},
 			{"target_scene", r.targetScene},
 			{"revert_seconds", r.revertSeconds},
+			{"enabled", r.enabled}  // ルールの有効/無効状態を保存
 		};
 		ofs << "rule=" << j.dump() << "\n";
 	}
@@ -241,7 +242,7 @@ void ConfigManager::load()
 			r.sourceScene = j.value("source_scene", "");
 			r.targetScene = j.value("target_scene", "");
 			r.revertSeconds = j.value("revert_seconds", 0);
-
+			r.enabled = j.value("enabled", true);  // デフォルトは有効
 			if (r.rewardId.empty() || r.targetScene.empty())
 				continue;
 
