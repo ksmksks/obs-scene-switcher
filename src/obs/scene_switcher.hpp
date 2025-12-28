@@ -1,4 +1,4 @@
-﻿// obs-scene-switcher plugin
+// obs-scene-switcher plugin
 // Copyright (C) 2025 ksmksks
 // SPDX-License-Identifier: GPL-2.0-or-later
 
@@ -27,8 +27,11 @@ public:
 	void switchScene(const std::string &sceneName);
 	void switchWithRevert(const RewardRule &rule);
 
-signals:  // 状態変更通知
-	void stateChanged(State newState, int remainingSeconds = -1);
+signals:
+	// v0.6.2: シーン名を含む詳細な状態通知
+	void stateChanged(State newState, int remainingSeconds = -1, 
+	                  const QString &targetScene = QString(), 
+	                  const QString &originalScene = QString());
 
 private:
 	QString getCurrentSceneName() const;
@@ -39,6 +42,6 @@ private:
 	QString originalScene_;
 	QString currentTargetScene_;
 	QTimer revertTimer_;
-	QTimer countdownTimer_;  // カウントダウン用
-	int totalRevertSeconds_ = 0;  // 総復帰時間
+	QTimer countdownTimer_;
+	int totalRevertSeconds_ = 0;
 };

@@ -256,13 +256,13 @@ void ObsSceneSwitcher::setEnabled(bool enabled)
 	} else {
 		// 完全停止
 		pluginEnabled_ = false;
-		disconnectEventSub();  // UI 状態更新（無効）
+		disconnectEventSub();
 		
 		if (pluginDock_) {
 			auto *mainWidget = pluginDock_->getWidget()->findChild<DockMainWidget*>();
 			if (mainWidget) {
 				mainWidget->updateState("⏸ 待機中（無効）");
-				mainWidget->updateCountdown(-1);  // カウントダウンをクリア
+				mainWidget->updateCountdown(-1);
 			}
 		}
 	}
@@ -315,7 +315,8 @@ void ObsSceneSwitcher::setRewardRules(const std::vector<RewardRule> &rules)
 	blog(LOG_INFO, "[SceneSwitcher] Loaded %zu rules", rewardRules_.size());
 }
 
-void ObsSceneSwitcher::onSceneSwitcherStateChanged(SceneSwitcher::State state, int remainingSeconds)
+void ObsSceneSwitcher::onSceneSwitcherStateChanged(SceneSwitcher::State state, int remainingSeconds,
+                                                    const QString &targetScene, const QString &originalScene)
 {
 	if (!pluginDock_)
 		return;
@@ -331,11 +332,21 @@ void ObsSceneSwitcher::onSceneSwitcherStateChanged(SceneSwitcher::State state, i
 		mainWidget->updateCountdown(-1);
 		break;
 	case SceneSwitcher::State::Switched:
-		stateText = "🔄 切替中";
+		// v0.6.2: シーン名を含む詳細表示
+		if (!targetScene.isEmpty()) {
+			stateText = QString("🔄 切替中: %1").arg(targetScene);
+		} else {
+			stateText = "🔄 切替中";
+		}
 		mainWidget->updateCountdown(remainingSeconds);
 		break;
 	case SceneSwitcher::State::Reverting:
-		stateText = "⏱ 復帰中";
+		// v0.6.2: 復帰先シーン名を表示
+		if (!targetScene.isEmpty()) {
+			stateText = QString("⏱ 復帰中: %1 へ").arg(targetScene);
+		} else {
+			stateText = "⏱ 復帰中";
+		}
 		break;
 	case SceneSwitcher::State::Suppressed:
 		stateText = "⚠ 抑制中";

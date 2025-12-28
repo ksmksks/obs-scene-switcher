@@ -78,7 +78,9 @@ public slots:
 				  const std::string &userInput);
 	
 	// SceneSwitcher 状態変更
-	void onSceneSwitcherStateChanged(SceneSwitcher::State state, int remainingSeconds = -1);
+	void onSceneSwitcherStateChanged(SceneSwitcher::State state, int remainingSeconds = -1,
+	                                  const QString &targetScene = QString(),
+	                                  const QString &originalScene = QString());
 
 	private:
 	ObsSceneSwitcher();

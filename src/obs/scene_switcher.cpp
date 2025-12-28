@@ -1,4 +1,4 @@
-﻿// obs-scene-switcher plugin
+// obs-scene-switcher plugin
 // Copyright (C) 2025 ksmksks
 // SPDX-License-Identifier: GPL-2.0-or-later
 
@@ -72,7 +72,7 @@ void SceneSwitcher::switchWithRevert(const RewardRule &rule)
 	case State::Reverting:
 		blog(LOG_INFO, "[SceneSwitcher] Suppressed due to active transition");
 		state_ = State::Suppressed;
-		emit stateChanged(State::Suppressed);
+		emit stateChanged(State::Suppressed, -1, currentTargetScene_, originalScene_);
 		return;
 
 	case State::Suppressed:
@@ -95,7 +95,7 @@ void SceneSwitcher::switchWithRevert(const RewardRule &rule)
 
 	state_ = State::Switched;
 	totalRevertSeconds_ = rule.revertSeconds;
-	emit stateChanged(State::Switched, totalRevertSeconds_);
+	emit stateChanged(State::Switched, totalRevertSeconds_, currentTargetScene_, originalScene_);
 
 	revertTimer_.start(rule.revertSeconds * 1000);
 	countdownTimer_.start();  // カウントダウン開始
@@ -121,7 +121,7 @@ void SceneSwitcher::onCountdownTick()
 	
 	int remaining = revertTimer_.remainingTime() / 1000;
 	if (remaining >= 0) {
-		emit stateChanged(State::Switched, remaining);
+		emit stateChanged(State::Switched, remaining, currentTargetScene_, originalScene_);
 	}
 }
 
@@ -136,7 +136,7 @@ void SceneSwitcher::onRevertTimeout()
 	}
 
 	state_ = State::Reverting;
-	emit stateChanged(State::Reverting);
+	emit stateChanged(State::Reverting, -1, originalScene_, QString());
 
 	blog(LOG_INFO, "[SceneSwitcher] Reverting to previous scene: %s", originalScene_.toStdString().c_str());
 
