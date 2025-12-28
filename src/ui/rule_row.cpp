@@ -18,12 +18,24 @@ RuleRow::RuleRow(QWidget *parent) : QWidget(parent)
 	auto expandPolicy = QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 	auto fixedPolicy = QSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
+	// ドラッグハンドル（⋮⋮）
+	QLabel *dragHandle = new QLabel("⋮⋮", this);
+	dragHandle->setStyleSheet("font-size: 18px; color: #808080; padding: 0 4px;");
+	dragHandle->setFixedWidth(20);
+	dragHandle->setSizePolicy(fixedPolicy);
+	dragHandle->setAlignment(Qt::AlignCenter);
+	dragHandle->setToolTip("ドラッグして並び替え");
+	dragHandle->setCursor(Qt::OpenHandCursor);
+
 	// 有効/無効チェックボックス
 	enabledCheckBox_ = new QCheckBox(this);
 	enabledCheckBox_->setChecked(true);  // デフォルトは有効
 	enabledCheckBox_->setToolTip("ルールを有効/無効にする");
 	enabledCheckBox_->setFixedWidth(30);
 	enabledCheckBox_->setSizePolicy(fixedPolicy);
+	
+	// チェックボックスの状態変化で見た目を更新
+	connect(enabledCheckBox_, &QCheckBox::toggled, this, &RuleRow::updateVisualState);
 
 	// 現在シーン
 	originalSceneBox_ = new QComboBox(this);
@@ -71,6 +83,7 @@ RuleRow::RuleRow(QWidget *parent) : QWidget(parent)
 	removeButton_->setFixedWidth(60);
 	removeButton_->setSizePolicy(fixedPolicy);
 
+	layout->addWidget(dragHandle);
 	layout->addWidget(enabledCheckBox_);
 	layout->addWidget(originalSceneBox_);
 	layout->addWidget(arrow1Label);
@@ -82,9 +95,9 @@ RuleRow::RuleRow(QWidget *parent) : QWidget(parent)
 	layout->addWidget(removeButton_);
 
 	// 伸縮はコンボ部分に寄せる
-	layout->setStretch(1, 2); // currentScene
-	layout->setStretch(3, 2); // reward
-	layout->setStretch(5, 2); // targetScene
+	layout->setStretch(2, 2); // currentScene (dragHandle=0, checkbox=1, scene=2)
+	layout->setStretch(4, 2); // reward (arrow1=3, reward=4)
+	layout->setStretch(6, 2); // targetScene (arrow2=5, target=6)
 
 	connect(removeButton_, &QPushButton::clicked, [this]() { emit removeRequested(this); });
 }
@@ -154,9 +167,11 @@ std::string RuleRow::rewardId() const
 RewardRule RuleRow::rule() const
 {
 	RewardRule r;
+	r.rewardId = rewardId();  // rewardId を設定
+	r.sourceScene = currentScene().toStdString();  // sourceScene を設定
 	r.targetScene = targetSceneBox_->currentText().toStdString();
 	r.revertSeconds = revertSpin_->value();
-	r.enabled = enabled();  // 有効/無効状態を含める
+	r.enabled = enabled();
 	return r;
 }
 
@@ -176,4 +191,26 @@ void RuleRow::setRule(const RewardRule &rule)
 
 	targetSceneBox_->setCurrentText(QString::fromStdString(rule.targetScene));
 	revertSpin_->setValue(rule.revertSeconds);
+	
+	updateVisualState();  // 見た目を更新
+}
+
+void RuleRow::updateVisualState()
+{
+	bool isEnabled = enabledCheckBox_ ? enabledCheckBox_->isChecked() : true;
+	
+	// 無効時はグレーアウト
+	qreal opacity = isEnabled ? 1.0 : 0.4;
+	
+	if (originalSceneBox_)
+		originalSceneBox_->setEnabled(isEnabled);
+	if (rewardBox_)
+		rewardBox_->setEnabled(isEnabled);
+	if (targetSceneBox_)
+		targetSceneBox_->setEnabled(isEnabled);
+	if (revertSpin_)
+		revertSpin_->setEnabled(isEnabled);
+	
+	// 全体の透明度を調整してグレーアウト感を出す
+	setStyleSheet(isEnabled ? "" : "QWidget { opacity: 0.5; }");
 }

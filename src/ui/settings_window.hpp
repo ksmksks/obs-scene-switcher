@@ -1,4 +1,4 @@
-﻿// obs-scene-switcher plugin
+// obs-scene-switcher plugin
 // Copyright (C) 2025 ksmksks
 // SPDX-License-Identifier: GPL-2.0-or-later
 
@@ -9,6 +9,7 @@
 #include <QStringList>
 #include <QVector>
 #include <QVBoxLayout>
+#include <QListWidget>
 
 class RuleRow;
 
@@ -43,10 +44,10 @@ private:
 	void addRuleRow();
 	void removeRuleRow(RuleRow *row);
 
-	void loadRules(); // FIXME: ConfigManager 実装後に中身を書く
-	void saveRules(); // FIXME: ConfigManager 実装後に中身を書く
+	void loadRules();
+	void saveRules();
 
-	QVBoxLayout *rulesLayout_ = nullptr;
+	QListWidget *rulesListWidget_ = nullptr;  // ドラッグ&ドロップ対応
 	QPushButton *addRuleButton_ = nullptr;
 	QPushButton *saveButton_ = nullptr;
 	QPushButton *closeButton_ = nullptr;
@@ -54,7 +55,4 @@ private:
 	// Scene / Reward の候補一覧
 	QStringList sceneList_;
 	std::vector<RewardInfo> rewardList_;
-
-	// 画面上に並んでいるルール行
-	QVector<RuleRow *> ruleRows_;
 };

@@ -286,23 +286,26 @@ void ObsSceneSwitcher::onRedemptionReceived(const std::string &rewardId, const s
 		return;
 	}
 
-	auto it = rewardRules_.find(rewardId);
-	if (it == rewardRules_.end()) {
-		blog(LOG_WARNING, "[SceneSwitcher] No rule found for reward_id=%s (total rules: %zu)", 
-		     rewardId.c_str(), rewardRules_.size());
-		return;
+	// 上から順にルールを検索（最初の有効なマッチを優先）
+	for (const auto &rule : rewardRules_) {
+		if (rule.rewardId != rewardId)
+			continue;
+
+		// ルールが無効の場合は次のルールへ（スキップして続行）
+		if (!rule.enabled) {
+			blog(LOG_INFO, "[SceneSwitcher] Rule for reward_id=%s is disabled, skipping to next rule", rewardId.c_str());
+			continue;  // return ではなく continue
+		}
+
+		blog(LOG_INFO, "[SceneSwitcher] Matched rule: %s -> %s (revert: %d sec)", 
+		     rule.sourceScene.c_str(), rule.targetScene.c_str(), rule.revertSeconds);
+
+		sceneSwitcher_->switchWithRevert(rule);
+		return;  // 最初の有効なルールを実行したら終了
 	}
 
-	// ルールが無効の場合は無視
-	if (!it->second.enabled) {
-		blog(LOG_INFO, "[SceneSwitcher] Rule for reward_id=%s is disabled, ignoring", rewardId.c_str());
-		return;
-	}
-
-	blog(LOG_INFO, "[SceneSwitcher] Matched rule: %s -> %s (revert: %d sec)", 
-	     it->second.sourceScene.c_str(), it->second.targetScene.c_str(), it->second.revertSeconds);
-
-	sceneSwitcher_->switchWithRevert(it->second);
+	blog(LOG_WARNING, "[SceneSwitcher] No enabled rule found for reward_id=%s (total rules: %zu)", 
+	     rewardId.c_str(), rewardRules_.size());
 }
 
 void ObsSceneSwitcher::switchScene(const std::string &sceneName)
@@ -314,11 +317,7 @@ void ObsSceneSwitcher::switchScene(const std::string &sceneName)
 
 void ObsSceneSwitcher::setRewardRules(const std::vector<RewardRule> &rules)
 {
-	rewardRules_.clear();
-
-	for (const auto &rule : rules) {
-		rewardRules_[rule.rewardId] = rule;
-	}
+	rewardRules_ = rules;  // 順序を保持したまま格納
 
 	blog(LOG_INFO, "[SceneSwitcher] Loaded %zu rules", rewardRules_.size());
 }

@@ -106,8 +106,8 @@ public slots:
 
         std::vector<RewardInfo> rewardList_;
 
-	// Reward → Scene のマッピング
-	std::unordered_map<std::string, RewardRule> rewardRules_;
+	// Reward → Scene のマッピング（順序を保持）
+	std::vector<RewardRule> rewardRules_;
 
 	std::unique_ptr<SceneSwitcher> sceneSwitcher_;
 };

@@ -15,6 +15,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QScrollArea>
+#include <QListWidget>
 
 SettingsWindow::SettingsWindow(QWidget *parent) : QDialog(parent)
 {
@@ -28,7 +29,7 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QDialog(parent)
 
 	// ヘッダ「ルール一覧」＋「＋ルール」ボタン
 	auto *headerLayout = new QHBoxLayout();
-	auto *titleLabel = new QLabel(tr("ルール一覧"), this);
+	auto *titleLabel = new QLabel(tr("ルール一覧（ドラッグで並び替え）"), this);
 	QFont titleFont = titleLabel->font();
 	titleFont.setBold(true);
 	titleLabel->setFont(titleFont);
@@ -41,18 +42,23 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QDialog(parent)
 
 	mainLayout->addLayout(headerLayout);
 
-	// ルール一覧をスクロール領域に
-	auto *scrollArea = new QScrollArea(this);
-	scrollArea->setWidgetResizable(true);
-
-	QWidget *rulesContainer = new QWidget(scrollArea);
-	rulesLayout_ = new QVBoxLayout(rulesContainer);
-	rulesLayout_->setContentsMargins(0, 0, 0, 0);
-	rulesLayout_->setSpacing(4);
-	rulesLayout_->addStretch();
-
-	scrollArea->setWidget(rulesContainer);
-	mainLayout->addWidget(scrollArea, 1);
+	// ルール一覧をドラッグ&ドロップ対応リストに
+	rulesListWidget_ = new QListWidget(this);
+	rulesListWidget_->setDragDropMode(QAbstractItemView::InternalMove);
+	rulesListWidget_->setSelectionMode(QAbstractItemView::SingleSelection);
+	rulesListWidget_->setSpacing(2);
+	
+	// 選択時に青くならないようにスタイルを設定
+	rulesListWidget_->setStyleSheet(
+		"QListWidget::item:selected { background: transparent; }"
+		"QListWidget::item:hover { background: rgba(255, 255, 255, 0.1); }"
+		"QListWidget { background: transparent; border: none; }"
+	);
+	
+	// フォーカス時の点線枠も非表示
+	rulesListWidget_->setFocusPolicy(Qt::NoFocus);
+	
+	mainLayout->addWidget(rulesListWidget_, 1);
 
 	// 下部ボタン行 [ 保存 ][ 閉じる ]
 	auto *buttonLayout = new QHBoxLayout();
@@ -91,7 +97,9 @@ void SettingsWindow::setSceneList(const QStringList &scenes)
 	sceneList_ = scenes;
 
 	// 既存の行にも新しい候補を反映
-	for (RuleRow *row : ruleRows_) {
+	for (int i = 0; i < rulesListWidget_->count(); ++i) {
+		QListWidgetItem *item = rulesListWidget_->item(i);
+		RuleRow *row = qobject_cast<RuleRow*>(rulesListWidget_->itemWidget(item));
 		if (row)
 			row->setSceneList(sceneList_);
 	}
@@ -101,7 +109,9 @@ void SettingsWindow::setRewardList(const std::vector<RewardInfo> &rewards)
 {
 	rewardList_ = rewards;
 
-	for (RuleRow *row : ruleRows_) {
+	for (int i = 0; i < rulesListWidget_->count(); ++i) {
+		QListWidgetItem *item = rulesListWidget_->item(i);
+		RuleRow *row = qobject_cast<RuleRow*>(rulesListWidget_->itemWidget(item));
 		if (row)
 			row->setRewardList(rewardList_);
 	}
@@ -114,12 +124,6 @@ void SettingsWindow::onAddRuleClicked()
 
 void SettingsWindow::addRuleRow()
 {
-	// ストレッチを一旦取り除く
-	if (rulesLayout_->itemAt(rulesLayout_->count() - 1)->spacerItem()) {
-		QLayoutItem *spacer = rulesLayout_->takeAt(rulesLayout_->count() - 1);
-		delete spacer;
-	}
-
 	auto *row = new RuleRow(this);
 
 	// 事前に取得済みのシーン／リワード一覧を反映
@@ -128,11 +132,10 @@ void SettingsWindow::addRuleRow()
 	if (!rewardList_.empty())
 		row->setRewardList(rewardList_);
 
-	rulesLayout_->addWidget(row);
-	ruleRows_.append(row);
-
-	// 末尾に再度ストレッチ
-	rulesLayout_->addStretch();
+	// QListWidgetItem を作成
+	auto *item = new QListWidgetItem(rulesListWidget_);
+	item->setSizeHint(row->sizeHint());
+	rulesListWidget_->setItemWidget(item, row);
 
 	// 行側の「削除」ボタンが押されたら、このウィンドウから行を消す
 	connect(row, &RuleRow::removeRequested, this, &SettingsWindow::removeRuleRow);
@@ -143,9 +146,14 @@ void SettingsWindow::removeRuleRow(RuleRow *row)
 	if (!row)
 		return;
 
-	ruleRows_.removeOne(row);
-	rulesLayout_->removeWidget(row);
-	row->deleteLater();
+	// QListWidget から対応するアイテムを探して削除
+	for (int i = 0; i < rulesListWidget_->count(); ++i) {
+		QListWidgetItem *item = rulesListWidget_->item(i);
+		if (rulesListWidget_->itemWidget(item) == row) {
+			delete rulesListWidget_->takeItem(i);
+			break;
+		}
+	}
 }
 
 void SettingsWindow::onSaveClicked()
@@ -165,15 +173,7 @@ void SettingsWindow::onCloseClicked()
 
 void SettingsWindow::loadRules()
 {
-	qDeleteAll(ruleRows_);
-	ruleRows_.clear();
-
-	if (rulesLayout_->count() > 0) {
-		QLayoutItem *last = rulesLayout_->itemAt(rulesLayout_->count() - 1);
-		if (last && last->spacerItem()) {
-			delete rulesLayout_->takeAt(rulesLayout_->count() - 1);
-		}
-	}
+	rulesListWidget_->clear();
 
 	auto &cfg = ConfigManager::instance();
 	for (const auto &rule : cfg.getRewardRules()) {
@@ -183,18 +183,23 @@ void SettingsWindow::loadRules()
 		row->setRewardList(rewardList_);
 		row->setRule(rule);
 
-		rulesLayout_->addWidget(row);
-		ruleRows_.append(row);
+		auto *item = new QListWidgetItem(rulesListWidget_);
+		item->setSizeHint(row->sizeHint());
+		rulesListWidget_->setItemWidget(item, row);
+		
+		connect(row, &RuleRow::removeRequested, this, &SettingsWindow::removeRuleRow);
 	}
-
-	rulesLayout_->addStretch();
 }
 
 void SettingsWindow::saveRules()
 {
 	std::vector<RewardRule> rules;
 
-	for (RuleRow *row : ruleRows_) {
+	// QListWidget の順序でルールを保存（ドラッグ&ドロップでの並び替えを反映）
+	for (int i = 0; i < rulesListWidget_->count(); ++i) {
+		QListWidgetItem *item = rulesListWidget_->item(i);
+		RuleRow *row = qobject_cast<RuleRow*>(rulesListWidget_->itemWidget(item));
+		
 		if (!row)
 			continue;
 
@@ -203,7 +208,7 @@ void SettingsWindow::saveRules()
 		rule.sourceScene = row->currentScene().toStdString();
 		rule.targetScene = row->targetScene().toStdString();
 		rule.revertSeconds = row->revertSeconds();
-		rule.enabled = row->enabled();  // 有効/無効状態を保存
+		rule.enabled = row->enabled();
 
 		if (rule.rewardId.empty() || rule.targetScene.empty())
 			continue;

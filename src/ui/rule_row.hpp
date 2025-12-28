@@ -35,8 +35,11 @@ public:
 signals:
 	void removeRequested(RuleRow *self);
 
+private slots:
+	void updateVisualState();  // 無効時のグレーアウト表示
+
 private:
-	QCheckBox *enabledCheckBox_;  // 有効/無効チェックボックス
+	QCheckBox *enabledCheckBox_;
 	QComboBox *originalSceneBox_;
 	QComboBox *rewardBox_;
 	QComboBox *targetSceneBox_;
