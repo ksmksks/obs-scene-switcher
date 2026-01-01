@@ -7,6 +7,7 @@
 !/cmake
 !/data
 !/src
+!/installer
 !.clang-format
 !.editorconfig
 !.gersemirc
@@ -27,8 +28,13 @@
 # Exclude CMake build number cache
 /cmake/.CMakeBuildNumber
 
-# OAuth Secrets
-/src/oauth/twitch_oauth_secrets.h
-
 # Do not commit vendor libraries
 /src/vendor/
+
+# Installer Directory
+/installer/files/
+/installer/*.exe
+!/installer/setup.nsi
+
+# Release Directory
+/release/

@@ -140,3 +140,118 @@ install(
     DIRECTORY data/
     DESTINATION ${OBS_DATA_DEST}/${_name}
 )
+
+# ========== NSIS Installer Target (Windows only) ==========
+if(WIN32)
+    # Find makensis.exe
+    find_program(MAKENSIS_EXE makensis.exe
+        PATHS
+            "C:/Program Files (x86)/NSIS"
+            "C:/Program Files/NSIS"
+            "$ENV{ProgramFiles}/NSIS"
+        PATH_SUFFIXES bin
+    )
+    
+    if(MAKENSIS_EXE)
+        message(STATUS "Found NSIS: ${MAKENSIS_EXE}")
+        
+        # Create a script to build installer
+        file(WRITE "${CMAKE_BINARY_DIR}/build_installer.cmake" "
+# Copy DLL
+file(MAKE_DIRECTORY \"${CMAKE_SOURCE_DIR}/installer/files/obs-studio/obs-plugins/64bit\")
+file(COPY_FILE 
+    \"\${DLL_PATH}\"
+    \"${CMAKE_SOURCE_DIR}/installer/files/obs-studio/obs-plugins/64bit/obs-scene-switcher.dll\"
+)
+
+# Copy data files
+file(MAKE_DIRECTORY \"${CMAKE_SOURCE_DIR}/installer/files/obs-studio/data/obs-plugins/obs-scene-switcher\")
+file(COPY \"${CMAKE_SOURCE_DIR}/data/\"
+    DESTINATION \"${CMAKE_SOURCE_DIR}/installer/files/obs-studio/data/obs-plugins/obs-scene-switcher\"
+)
+
+# Run NSIS
+execute_process(
+    COMMAND \"${MAKENSIS_EXE}\" /DPRODUCT_VERSION=${CMAKE_PROJECT_VERSION} \"${CMAKE_SOURCE_DIR}/installer/setup.nsi\"
+    WORKING_DIRECTORY \"${CMAKE_SOURCE_DIR}/installer\"
+    RESULT_VARIABLE result
+)
+
+if(NOT result EQUAL 0)
+    message(FATAL_ERROR \"NSIS installer build failed\")
+endif()
+
+message(STATUS \"Installer created: ${CMAKE_SOURCE_DIR}/installer/obs-scene-switcher-${CMAKE_PROJECT_VERSION}-installer.exe\")
+")
+        
+        # Installer target (for manual invocation)
+        add_custom_target(installer
+            DEPENDS ${CMAKE_PROJECT_NAME}
+            COMMAND ${CMAKE_COMMAND} 
+                -DDLL_PATH=$<TARGET_FILE:${CMAKE_PROJECT_NAME}>
+                -P "${CMAKE_BINARY_DIR}/build_installer.cmake"
+            COMMENT "Building NSIS installer for ${CMAKE_PROJECT_NAME} v${CMAKE_PROJECT_VERSION}"
+            VERBATIM
+        )
+        
+        message(STATUS "NSIS installer target created.")
+        message(STATUS "  Build installer: cmake --build build_x64 --target installer --config Release")
+        message(STATUS "  Or in Visual Studio: Build → installer project")
+    else()
+        message(WARNING "NSIS not found. Installer target will not be available.")
+        message(WARNING "  Install NSIS from https://nsis.sourceforge.io/")
+    endif()
+    
+    # Manual installation ZIP target
+    add_custom_target(package-zip
+        DEPENDS ${CMAKE_PROJECT_NAME}
+        
+        # Create directory structure
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+            "${CMAKE_SOURCE_DIR}/release/obs-scene-switcher-${CMAKE_PROJECT_VERSION}"
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+            "${CMAKE_SOURCE_DIR}/release/obs-scene-switcher-${CMAKE_PROJECT_VERSION}/obs-plugins/64bit"
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+            "${CMAKE_SOURCE_DIR}/release/obs-scene-switcher-${CMAKE_PROJECT_VERSION}/data/obs-plugins/obs-scene-switcher"
+        
+        # Copy DLL
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE:${CMAKE_PROJECT_NAME}>"
+            "${CMAKE_SOURCE_DIR}/release/obs-scene-switcher-${CMAKE_PROJECT_VERSION}/obs-plugins/64bit/obs-scene-switcher.dll"
+        
+        # Copy data files
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/data"
+            "${CMAKE_SOURCE_DIR}/release/obs-scene-switcher-${CMAKE_PROJECT_VERSION}/data/obs-plugins/obs-scene-switcher"
+        
+        # Create INSTALL.txt
+        COMMAND ${CMAKE_COMMAND} -E echo "OBS Scene Switcher v${CMAKE_PROJECT_VERSION} - Manual Installation" > "${CMAKE_SOURCE_DIR}/release/obs-scene-switcher-${CMAKE_PROJECT_VERSION}/INSTALL.txt"
+        COMMAND ${CMAKE_COMMAND} -E echo "" >> "${CMAKE_SOURCE_DIR}/release/obs-scene-switcher-${CMAKE_PROJECT_VERSION}/INSTALL.txt"
+        COMMAND ${CMAKE_COMMAND} -E echo "Installation Instructions:" >> "${CMAKE_SOURCE_DIR}/release/obs-scene-switcher-${CMAKE_PROJECT_VERSION}/INSTALL.txt"
+        COMMAND ${CMAKE_COMMAND} -E echo "1. Close OBS Studio if it is running" >> "${CMAKE_SOURCE_DIR}/release/obs-scene-switcher-${CMAKE_PROJECT_VERSION}/INSTALL.txt"
+        COMMAND ${CMAKE_COMMAND} -E echo "2. Copy 'obs-plugins' folder to your OBS Studio installation directory" >> "${CMAKE_SOURCE_DIR}/release/obs-scene-switcher-${CMAKE_PROJECT_VERSION}/INSTALL.txt"
+        COMMAND ${CMAKE_COMMAND} -E echo "   Default: C:\\Program Files\\obs-studio\\" >> "${CMAKE_SOURCE_DIR}/release/obs-scene-switcher-${CMAKE_PROJECT_VERSION}/INSTALL.txt"
+        COMMAND ${CMAKE_COMMAND} -E echo "3. Copy 'data' folder to your OBS Studio installation directory" >> "${CMAKE_SOURCE_DIR}/release/obs-scene-switcher-${CMAKE_PROJECT_VERSION}/INSTALL.txt"
+        COMMAND ${CMAKE_COMMAND} -E echo "4. Restart OBS Studio" >> "${CMAKE_SOURCE_DIR}/release/obs-scene-switcher-${CMAKE_PROJECT_VERSION}/INSTALL.txt"
+        COMMAND ${CMAKE_COMMAND} -E echo "" >> "${CMAKE_SOURCE_DIR}/release/obs-scene-switcher-${CMAKE_PROJECT_VERSION}/INSTALL.txt"
+        COMMAND ${CMAKE_COMMAND} -E echo "For more information:" >> "${CMAKE_SOURCE_DIR}/release/obs-scene-switcher-${CMAKE_PROJECT_VERSION}/INSTALL.txt"
+        COMMAND ${CMAKE_COMMAND} -E echo "https://github.com/ksmksks/obs-scene-switcher" >> "${CMAKE_SOURCE_DIR}/release/obs-scene-switcher-${CMAKE_PROJECT_VERSION}/INSTALL.txt"
+        
+        # Create ZIP
+        COMMAND ${CMAKE_COMMAND} -E tar "cf" 
+            "${CMAKE_SOURCE_DIR}/release/obs-scene-switcher-${CMAKE_PROJECT_VERSION}-manual.zip" 
+            --format=zip
+            "${CMAKE_SOURCE_DIR}/release/obs-scene-switcher-${CMAKE_PROJECT_VERSION}"
+        
+        # Cleanup temporary directory
+        COMMAND ${CMAKE_COMMAND} -E rm -rf
+            "${CMAKE_SOURCE_DIR}/release/obs-scene-switcher-${CMAKE_PROJECT_VERSION}"
+        
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/release"
+        COMMENT "Creating manual installation ZIP for ${CMAKE_PROJECT_NAME} v${CMAKE_PROJECT_VERSION}"
+        VERBATIM
+    )
+    
+    message(STATUS "Manual installation ZIP target created.")
+    message(STATUS "  Build ZIP: cmake --build build_x64 --target package-zip --config Release")
+endif()

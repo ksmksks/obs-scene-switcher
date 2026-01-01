@@ -38,7 +38,7 @@
     },
     "name": "obs-scene-switcher",
     "displayName": "Scene Switcher for OBS",
-    "version": "0.7.2",
+    "version": "0.8.0",
     "author": "ksmksks",
     "website": "https://twitch.tv/ksmksks",
     "email": "m4ks.ksmksks@gmail.com"
