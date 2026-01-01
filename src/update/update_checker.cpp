@@ -8,12 +8,14 @@
 #include <obs-frontend-api.h>
 
 #include "../plugin-support.h"
+#include "../i18n/locale_manager.hpp"
 
 #include <nlohmann/json.hpp>
 
 #include <thread>
 #include <sstream>
 #include <algorithm>
+#include <tuple>
 
 #ifdef _WIN32
 #define NOMINMAX  // Windows.h の min/max マクロを無効化
@@ -185,26 +187,30 @@ void UpdateChecker::showUpdateNotification(const std::string &latestVersion, con
 	// obs_queue_task を使用して OBS のメインスレッドで実行
 	
 	// メッセージボックスを表示（簡易実装）
-	std::string message = "New version available: " + latestVersion + 
-	                      "\nCurrent version: " + std::string(PLUGIN_VERSION) +
-	                      "\n\nWould you like to visit the release page?";
+	std::string currentVersion = PLUGIN_VERSION;
 	
 #ifdef _WIN32
 	// メインスレッドで実行
 	obs_queue_task(OBS_TASK_UI, [](void *param) {
-		auto *data = static_cast<std::pair<std::string, std::string>*>(param);
+		auto *data = static_cast<std::tuple<std::string, std::string, std::string>*>(param);
 		
-		int result = MessageBoxA(NULL, 
-		                         data->first.c_str(),
-		                         "OBS Scene Switcher - Update Available",
+		// LocaleManagerを使用して翻訳
+		QString message = Tr("SceneSwitcher.Message.UpdateAvailable")
+			.arg(QString::fromStdString(std::get<0>(*data)))
+			.arg(QString::fromStdString(std::get<1>(*data)));
+		QString title = Tr("SceneSwitcher.Message.UpdateTitle");
+		
+		int result = MessageBoxW(NULL, 
+		                         message.toStdWString().c_str(),
+		                         title.toStdWString().c_str(),
 		                         MB_YESNO | MB_ICONINFORMATION);
 		
 		if (result == IDYES) {
 			// ブラウザでリリースページを開く
-			ShellExecuteA(NULL, "open", data->second.c_str(), NULL, NULL, SW_SHOWNORMAL);
+			ShellExecuteA(NULL, "open", std::get<2>(*data).c_str(), NULL, NULL, SW_SHOWNORMAL);
 		}
 		
 		delete data;
-	}, new std::pair<std::string, std::string>(message, releaseUrl), false);
+	}, new std::tuple<std::string, std::string, std::string>(latestVersion, currentVersion, releaseUrl), false);
 #endif
 }

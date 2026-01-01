@@ -8,6 +8,7 @@
 #include "../obs/scene_switcher.hpp"
 #include "../obs/config_manager.hpp"
 #include "../obs_scene_switcher.hpp"
+#include "../i18n/locale_manager.hpp"
 
 #include <obs-module.h>
 #include <QVBoxLayout>
@@ -19,7 +20,7 @@
 
 SettingsWindow::SettingsWindow(QWidget *parent) : QDialog(parent)
 {
-	setWindowTitle(tr("Scene Switcher Settings"));
+	setWindowTitle(Tr("SceneSwitcher.Settings.Title"));
 	setModal(true);
 	resize(600, 400);
 
@@ -29,12 +30,12 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QDialog(parent)
 
 	// ヘッダ「ルール一覧」＋「＋ルール」ボタン
 	auto *headerLayout = new QHBoxLayout();
-	auto *titleLabel = new QLabel(tr("ルール一覧（ドラッグで並び替え）"), this);
+	auto *titleLabel = new QLabel(Tr("SceneSwitcher.Settings.Title"), this);
 	QFont titleFont = titleLabel->font();
 	titleFont.setBold(true);
 	titleLabel->setFont(titleFont);
 
-	addRuleButton_ = new QPushButton(tr("＋ ルール"), this);
+	addRuleButton_ = new QPushButton(Tr("SceneSwitcher.Settings.AddRule"), this);
 
 	headerLayout->addWidget(titleLabel);
 	headerLayout->addStretch();
@@ -62,8 +63,8 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QDialog(parent)
 
 	// 下部ボタン行 [ 保存 ][ 閉じる ]
 	auto *buttonLayout = new QHBoxLayout();
-	saveButton_ = new QPushButton(tr("保存"), this);
-	closeButton_ = new QPushButton(tr("閉じる"), this);
+	saveButton_ = new QPushButton(Tr("SceneSwitcher.Settings.Save"), this);
+	closeButton_ = new QPushButton(Tr("SceneSwitcher.Settings.Cancel"), this);
 
 	buttonLayout->addStretch();
 	buttonLayout->addWidget(saveButton_);
@@ -88,7 +89,6 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QDialog(parent)
 		rewardList_ = ObsSceneSwitcher::instance()->getRewardList();
 	}
 
-	// TODO: 設定ファイルからルールを読み込んで行を追加する
 	loadRules();
 }
 

@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include "rule_row.hpp"
+#include "../i18n/locale_manager.hpp"
 #include <QHBoxLayout>
 #include <QToolButton>
 #include <QStyle>
@@ -24,13 +25,13 @@ RuleRow::RuleRow(QWidget *parent) : QWidget(parent)
 	dragHandle->setFixedWidth(20);
 	dragHandle->setSizePolicy(fixedPolicy);
 	dragHandle->setAlignment(Qt::AlignCenter);
-	dragHandle->setToolTip("ドラッグして並び替え");
+	dragHandle->setToolTip(Tr("SceneSwitcher.Rule.DragHandle"));
 	dragHandle->setCursor(Qt::OpenHandCursor);
 
 	// 有効/無効チェックボックス
 	enabledCheckBox_ = new QCheckBox(this);
 	enabledCheckBox_->setChecked(true);  // デフォルトは有効
-	enabledCheckBox_->setToolTip("ルールを有効/無効にする");
+	enabledCheckBox_->setToolTip(Tr("SceneSwitcher.Rule.EnabledCheckbox"));
 	enabledCheckBox_->setFixedWidth(30);
 	enabledCheckBox_->setSizePolicy(fixedPolicy);
 	
@@ -74,12 +75,12 @@ RuleRow::RuleRow(QWidget *parent) : QWidget(parent)
 	revertSpin_ = new QSpinBox(this);
 	revertSpin_->setRange(0, 86400);
 	revertSpin_->setValue(10);
-	revertSpin_->setSuffix(" sec");
+	revertSpin_->setSuffix(QString(" %1").arg(Tr("SceneSwitcher.Rule.Duration")));
 	revertSpin_->setFixedWidth(100);
 	revertSpin_->setSizePolicy(fixedPolicy);
 
 	// 削除ボタン
-	removeButton_ = new QPushButton("削除", this);
+	removeButton_ = new QPushButton(Tr("SceneSwitcher.Rule.Remove"), this);
 	removeButton_->setFixedWidth(60);
 	removeButton_->setSizePolicy(fixedPolicy);
 
@@ -108,7 +109,7 @@ void RuleRow::setSceneList(const QList<QString> &scenes)
 	targetSceneBox_->clear();
 	
 	// 現在シーン用のコンボボックスに「任意(Any)」を先頭に追加
-	originalSceneBox_->addItem("任意(Any)", "Any");
+	originalSceneBox_->addItem(Tr("SceneSwitcher.Rule.Any"), "Any");
 	originalSceneBox_->addItems(scenes);
 	
 	// 切替先シーンには通常のシーンのみ

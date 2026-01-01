@@ -1,9 +1,10 @@
-﻿// obs-scene-switcher plugin
+// obs-scene-switcher plugin
 // Copyright (C) 2025 ksmksks
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include "dock_main_widget.hpp"
 #include "../obs/config_manager.hpp"
+#include "../i18n/locale_manager.hpp"
 
 #include <QLabel>
 #include <QPushButton>
@@ -24,7 +25,7 @@ DockMainWidget::DockMainWidget(QWidget *parent) : QWidget(parent)
 	addSeparator(mainLayout);
 
 	// ========== 状態セクション ==========
-	labelState_ = new QLabel("⏸ 待機中（無効）", this);
+	labelState_ = new QLabel(Tr("SceneSwitcher.Status.Disabled"), this);
 	labelCountdown_ = new QLabel("", this);
 	
 	// カウントダウンのスペースを常に確保
@@ -35,17 +36,17 @@ DockMainWidget::DockMainWidget(QWidget *parent) : QWidget(parent)
 	mainLayout->addWidget(labelCountdown_);
 
 	// ========== 制御セクション ==========
-	buttonToggleEnabled_ = new QPushButton("無効", this);
+	buttonToggleEnabled_ = new QPushButton(Tr("SceneSwitcher.Button.Disable"), this);
 	buttonToggleEnabled_->setCheckable(true);
 	buttonToggleEnabled_->setChecked(false);
 	buttonToggleEnabled_->setEnabled(false);
 	buttonToggleEnabled_->setMinimumHeight(36);
 	
-	logoutButton_ = new QPushButton("ログアウト", this);
+	logoutButton_ = new QPushButton(Tr("SceneSwitcher.Button.Logout"), this);
 	logoutButton_->setMinimumHeight(36);
 	logoutButton_->setVisible(false);  // 認証後に表示
 	
-	buttonSettings_ = new QPushButton("設定", this);
+	buttonSettings_ = new QPushButton(Tr("SceneSwitcher.Button.Settings"), this);
 	buttonSettings_->setMinimumHeight(36);
 	
 	applyToggleStyle();
@@ -71,7 +72,6 @@ void DockMainWidget::addSeparator(QVBoxLayout *layout)
 	line->setFrameShape(QFrame::HLine);
 	line->setFrameShadow(QFrame::Plain);
 	line->setLineWidth(1);
-	// OBSの音声ミキサーのような細い線
 	line->setStyleSheet("QFrame { color: #3E3E42; border: none; background-color: #3E3E42; max-height: 1px; }");
 	layout->addWidget(line);
 }
@@ -82,8 +82,7 @@ void DockMainWidget::updateAuthStatus(bool authenticated)
 		return;
 	
 	if (!authenticated) {
-		// 🔴 赤丸
-		labelAuthStatus_->setText("🔴 未ログイン");
+		labelAuthStatus_->setText(Tr("SceneSwitcher.Message.NotAuthenticated"));
 		if (logoutButton_)
 			logoutButton_->setVisible(false);
 		return;
@@ -93,7 +92,6 @@ void DockMainWidget::updateAuthStatus(bool authenticated)
 	QString displayName = QString::fromStdString(cfg.getBroadcasterDisplayName());
 	QString login = QString::fromStdString(cfg.getBroadcasterLogin());
 	
-	// 🟢 緑丸
 	QString text = QString("🟢 %1 (%2)").arg(displayName).arg(login);
 	
 	labelAuthStatus_->setText(text);
@@ -104,7 +102,6 @@ void DockMainWidget::updateAuthStatus(bool authenticated)
 
 void DockMainWidget::updateUserInfo()
 {
-	// updateAuthStatus(true) を呼ぶことで更新
 	updateAuthStatus(true);
 }
 
@@ -120,9 +117,9 @@ void DockMainWidget::updateCountdown(int seconds)
 		return;
 		
 	if (seconds >= 0) {
-		labelCountdown_->setText(QString("⏱ 復帰まで %1 秒").arg(seconds));
+		QString countdownText = Tr("SceneSwitcher.Countdown.Seconds").arg(seconds);
+		labelCountdown_->setText(QString("⏱ %1").arg(countdownText));
 	} else {
-		// スペースを確保するため、空文字ではなく不可視文字を設定
 		labelCountdown_->setText(" ");
 	}
 }
@@ -165,9 +162,9 @@ void DockMainWidget::updateEnabledState(bool enabled)
 	buttonToggleEnabled_->setChecked(enabled);
 	
 	if (enabled) {
-		buttonToggleEnabled_->setText("有効");
+		buttonToggleEnabled_->setText(Tr("SceneSwitcher.Button.Enable"));
 	} else {
-		buttonToggleEnabled_->setText("無効");
+		buttonToggleEnabled_->setText(Tr("SceneSwitcher.Button.Disable"));
 	}
 	
 	buttonToggleEnabled_->blockSignals(false);

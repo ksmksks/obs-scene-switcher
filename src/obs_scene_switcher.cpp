@@ -9,6 +9,7 @@
 #include "obs/config_manager.hpp"
 #include "oauth/http_server.hpp"
 #include "eventsub/eventsub_client.hpp"
+#include "i18n/locale_manager.hpp"
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -236,7 +237,7 @@ void ObsSceneSwitcher::setEnabled(bool enabled)
 			if (pluginDock_) {
 				auto *mainWidget = pluginDock_->getWidget()->findChild<DockMainWidget*>();
 				if (mainWidget) {
-					mainWidget->updateState("🟢 待機中");
+					mainWidget->updateState(Tr("SceneSwitcher.Status.Idle"));
 				}
 			}
 		} else {
@@ -252,7 +253,7 @@ void ObsSceneSwitcher::setEnabled(bool enabled)
 		if (pluginDock_) {
 			auto *mainWidget = pluginDock_->getWidget()->findChild<DockMainWidget*>();
 			if (mainWidget) {
-				mainWidget->updateState("⏸ 待機中（無効）");
+				mainWidget->updateState(Tr("SceneSwitcher.Status.Disabled"));
 				mainWidget->updateCountdown(-1);
 			}
 		}
@@ -345,28 +346,26 @@ void ObsSceneSwitcher::onSceneSwitcherStateChanged(SceneSwitcher::State state, i
 	QString stateText;
 	switch (state) {
 	case SceneSwitcher::State::Idle:
-		stateText = pluginEnabled_ ? "🟢 待機中" : "⏸ 待機中（無効）";
+		stateText = pluginEnabled_ ? Tr("SceneSwitcher.Status.Idle") : Tr("SceneSwitcher.Status.Disabled");
 		mainWidget->updateCountdown(-1);
 		break;
 	case SceneSwitcher::State::Switched:
-		// v0.6.2: シーン名を含む詳細表示
 		if (!targetScene.isEmpty()) {
-			stateText = QString("🔄 切替中: %1").arg(targetScene);
+			stateText = Tr("SceneSwitcher.Status.Switching").arg(targetScene);
 		} else {
-			stateText = "🔄 切替中";
+			stateText = Tr("SceneSwitcher.Status.Switching").arg("");
 		}
 		mainWidget->updateCountdown(remainingSeconds);
 		break;
 	case SceneSwitcher::State::Reverting:
-		// v0.6.2: 復帰先シーン名を表示
 		if (!targetScene.isEmpty()) {
-			stateText = QString("⏱ 復帰中: %1 へ").arg(targetScene);
+			stateText = Tr("SceneSwitcher.Status.Reverting").arg(targetScene);
 		} else {
-			stateText = "⏱ 復帰中";
+			stateText = Tr("SceneSwitcher.Status.Reverting").arg("");
 		}
 		break;
 	case SceneSwitcher::State::Suppressed:
-		stateText = "⚠ 抑制中";
+		stateText = Tr("SceneSwitcher.Status.Suppressed");
 		break;
 	}
 	

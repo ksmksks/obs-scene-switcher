@@ -78,6 +78,8 @@ set_source_files_properties(
     src/core/reward_rule.hpp
     src/update/update_checker.cpp
     src/update/update_checker.hpp
+    src/i18n/locale_manager.cpp
+    src/i18n/locale_manager.hpp
     PROPERTIES LANGUAGE CXX
 )
 
@@ -125,6 +127,10 @@ target_sources(${CMAKE_PROJECT_NAME}
         # Update
         src/update/update_checker.cpp
         src/update/update_checker.hpp
+        
+        # I18n
+        src/i18n/locale_manager.cpp
+        src/i18n/locale_manager.hpp
 )
 
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})
