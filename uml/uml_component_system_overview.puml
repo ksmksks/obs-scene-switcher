@@ -1,0 +1,83 @@
+@startuml uml_component_system_overview
+
+title OBS Scene Switcher - Component Overview
+
+package "OBS Studio" {
+    [OBS Frontend API]
+    [OBS Qt UI]
+}
+
+package "Plugin Core" {
+    [ObsSceneSwitcher] as Core
+    [SceneSwitcher] as Switcher
+    [ConfigManager] as Config
+}
+
+package "UI Components" {
+    [PluginDock] as Dock
+    [LoginWidget] as Login
+    [DockMainWidget] as MainDock
+    [SettingsWindow] as Settings
+    [RuleRow] as Rule
+}
+
+package "Twitch Integration" {
+    [TwitchOAuth] as OAuth
+    [HttpServer] as HTTP
+    [EventSubClient] as EventSub
+}
+
+package "Twitch Services" {
+    [OAuth Endpoint]
+    [EventSub WebSocket]
+    [Twitch API]
+}
+
+' Core connections
+Core --> [OBS Frontend API] : scene control
+Core --> Switcher : switch with revert
+Core --> Config : load/save
+Core --> OAuth : authentication
+Core --> EventSub : subscribe to events
+
+' UI connections
+Dock --> [OBS Qt UI] : Qt widget
+Dock --> Login : show on startup
+Dock --> MainDock : show after auth
+Dock --> Settings : open on button click
+
+MainDock --> Core : enable/disable
+Settings --> Rule : manage rules
+Settings --> Config : save rules
+
+' Twitch connections
+OAuth --> [OAuth Endpoint] : exchange code
+OAuth --> [Twitch API] : fetch rewards
+EventSub --> [EventSub WebSocket] : receive events
+HTTP --> OAuth : callback handler
+
+' Event flow
+EventSub --> Core : redemption received
+Core --> Switcher : execute rule
+
+note right of Core
+  Singleton instance
+  Manages plugin lifecycle
+  Plugin enabled/disabled state
+end note
+
+note right of Switcher
+  State Machine:
+  Idle → Switched → Reverting → Idle
+  Suppressed (temporary)
+end note
+
+note right of Config
+  Stores:
+  - OAuth credentials
+  - Broadcaster info
+  - Reward rules
+  - Plugin enabled state
+end note
+
+@enduml

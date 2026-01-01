@@ -1,0 +1,43 @@
+@startuml uml_state_scene_switcher
+
+title SceneSwitcher State Machine
+
+[*] --> Idle
+
+Idle --> Switched : switchWithRevert(rule)\n[revertSeconds > 0]
+Idle --> Idle : switchWithRevert(rule)\n[revertSeconds == 0]
+
+Switched --> Suppressed : switchWithRevert()\n[during transition]
+Suppressed --> Switched : after 1 second\n[timer continues]
+Switched --> Reverting : revertTimer timeout
+Reverting --> Idle : scene reverted
+
+note right of Idle
+  待機中
+  - タイマー停止
+  - 新しいリクエスト受付可能
+end note
+
+note right of Switched
+  シーン切替後
+  - revertTimer 動作中
+  - countdownTimer 動作中
+  - UI: "🔄 切替中: X秒"
+end note
+
+note right of Suppressed
+  抑制中（一時的）
+  - タイマーは継続
+  - 1秒後に Switched 表示に戻る
+  - UI: "⚠ 抑制中 (X秒)"
+  - 実際の state_ は Switched のまま
+end note
+
+note right of Reverting
+  復帰中
+  - シーンを元に戻す処理中
+  - UI: "⏱ 復帰中"
+  - 処理完了後すぐに Idle へ
+end note
+
+@enduml

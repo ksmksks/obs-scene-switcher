@@ -7,6 +7,7 @@
 !/cmake
 !/data
 !/src
+!/doc
 !/installer
 !.clang-format
 !.editorconfig
@@ -18,6 +19,12 @@
 !LICENSE
 !README.md
 !README_JP.md
+
+# UML directory
+!/uml
+/uml/**
+!uml/README.md
+!uml/uml_*.puml
 
 # Exclude lock files
 *.lock.json

@@ -1,0 +1,89 @@
+@startuml uml_sequence_plugin_enable
+
+title Plugin Enable/Disable Flow
+
+actor User
+participant DockMainWidget
+participant ObsSceneSwitcher
+participant EventSubClient
+participant ConfigManager
+participant "Twitch\nEventSub" as Twitch
+
+== Plugin Enable ==
+
+User -> DockMainWidget : Click "有効/無効" button
+DockMainWidget -> DockMainWidget : emit enableToggleRequested(true)
+DockMainWidget -> ObsSceneSwitcher : setEnabled(true)
+
+activate ObsSceneSwitcher
+
+ObsSceneSwitcher -> ObsSceneSwitcher : Check authenticated_
+
+alt Authenticated
+    ObsSceneSwitcher -> ObsSceneSwitcher : pluginEnabled_ = true
+    
+    ObsSceneSwitcher -> ConfigManager : getAccessToken()\ngetBroadcasterUserId()\ngetClientId()
+    ConfigManager --> ObsSceneSwitcher : credentials
+    
+    ObsSceneSwitcher -> EventSubClient : start(accessToken, broadcasterId, clientId)
+    activate EventSubClient
+    
+    EventSubClient -> Twitch : Connect WebSocket
+    Twitch --> EventSubClient : session_welcome
+    
+    EventSubClient -> Twitch : POST /eventsub/subscriptions
+    Twitch --> EventSubClient : subscription created
+    
+    deactivate EventSubClient
+    
+    ObsSceneSwitcher -> ObsSceneSwitcher : eventsubConnected_ = true
+    
+    ObsSceneSwitcher -> DockMainWidget : updateState("🟢 待機中")
+    
+    ObsSceneSwitcher -> ConfigManager : setPluginEnabled(true)
+    ConfigManager -> ConfigManager : save()
+    
+    ObsSceneSwitcher -> ObsSceneSwitcher : emit enabledStateChanged(true)
+    
+else Not Authenticated
+    ObsSceneSwitcher -> ObsSceneSwitcher : LOG_WARNING:\n"Cannot enable: not authenticated"
+    ObsSceneSwitcher -> DockMainWidget : Button stays disabled
+end
+
+deactivate ObsSceneSwitcher
+
+== Plugin Disable ==
+
+User -> DockMainWidget : Click "有効/無効" button
+DockMainWidget -> DockMainWidget : emit enableToggleRequested(false)
+DockMainWidget -> ObsSceneSwitcher : setEnabled(false)
+
+activate ObsSceneSwitcher
+
+ObsSceneSwitcher -> ObsSceneSwitcher : pluginEnabled_ = false
+
+ObsSceneSwitcher -> EventSubClient : stop()
+activate EventSubClient
+EventSubClient -> Twitch : Close WebSocket
+deactivate EventSubClient
+
+ObsSceneSwitcher -> ObsSceneSwitcher : eventsubConnected_ = false
+
+ObsSceneSwitcher -> DockMainWidget : updateState("⏸ 待機中（無効）")
+ObsSceneSwitcher -> DockMainWidget : updateCountdown(-1)
+
+ObsSceneSwitcher -> ConfigManager : setPluginEnabled(false)
+ConfigManager -> ConfigManager : save()
+
+ObsSceneSwitcher -> ObsSceneSwitcher : emit enabledStateChanged(false)
+
+deactivate ObsSceneSwitcher
+
+note right of ObsSceneSwitcher
+  Plugin Control:
+  - Plugin starts DISABLED by default
+  - User must explicitly enable
+  - State persisted across restarts
+end note
+
+@enduml

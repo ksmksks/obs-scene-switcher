@@ -1,0 +1,113 @@
+@startuml uml_sequence_eventsub_scene_switch
+
+title EventSub Scene Switch Flow
+
+participant "EventSub\nWebSocket" as Twitch
+participant EventSubClient
+participant ObsSceneSwitcher
+participant SceneSwitcher
+participant "OBS\nFrontend API" as OBS
+participant DockMainWidget
+
+Twitch -> EventSubClient : WebSocket message\n(redemption notification)
+activate EventSubClient
+
+EventSubClient -> EventSubClient : onMessage()
+EventSubClient -> EventSubClient : handleNotification()
+
+EventSubClient -> EventSubClient : emit redemptionReceived(\nrewardId, userName, userInput)
+
+EventSubClient -> ObsSceneSwitcher : onRedemptionReceived(\nrewardId, userName, userInput)
+deactivate EventSubClient
+
+activate ObsSceneSwitcher
+
+alt Plugin is disabled
+    ObsSceneSwitcher -> ObsSceneSwitcher : Check pluginEnabled_
+    note right: Return early if disabled
+else Plugin is enabled
+    
+    ObsSceneSwitcher -> SceneSwitcher : getCurrentSceneName()
+    SceneSwitcher --> ObsSceneSwitcher : currentScene
+    
+    ObsSceneSwitcher -> ObsSceneSwitcher : Find matching rule\n(check rewardId, enabled, sourceScene)
+    
+    note right of ObsSceneSwitcher
+      Rule matching (top to bottom):
+      1. Check rewardId
+      2. Check enabled flag
+      3. Check sourceScene:
+         - Empty or "Any" → Match
+         - Specific scene → Check current
+    end note
+    
+    alt Rule found and enabled and scene matches
+        ObsSceneSwitcher -> SceneSwitcher : switchWithRevert(rule)
+        activate SceneSwitcher
+        
+        alt State == Idle
+            SceneSwitcher -> SceneSwitcher : Check state_
+            SceneSwitcher -> OBS : getCurrentScene()
+            OBS --> SceneSwitcher : originalScene
+            
+            SceneSwitcher -> OBS : setCurrentScene(targetScene)
+            
+            alt revertSeconds > 0
+                SceneSwitcher -> SceneSwitcher : state_ = Switched
+                SceneSwitcher -> SceneSwitcher : emit stateChanged(\nSwitched, revertSeconds, target, original)
+                SceneSwitcher -> SceneSwitcher : revertTimer.start(revertSeconds * 1000)
+                SceneSwitcher -> SceneSwitcher : countdownTimer.start()
+                
+                SceneSwitcher -> DockMainWidget : updateState(\n"🔄 切替中: targetScene")
+                SceneSwitcher -> DockMainWidget : updateCountdown(revertSeconds)
+                
+            else revertSeconds == 0
+                SceneSwitcher -> SceneSwitcher : state_ = Idle
+                SceneSwitcher -> SceneSwitcher : emit stateChanged(Idle)
+            end
+            
+        else State == Switched or Reverting
+            SceneSwitcher -> SceneSwitcher : Suppress request
+            SceneSwitcher -> SceneSwitcher : emit stateChanged(\nSuppressed, remaining, target, original)
+            SceneSwitcher -> DockMainWidget : updateState("⚠ 抑制中")
+            
+            SceneSwitcher -> SceneSwitcher : QTimer::singleShot(1000)\n→ emit stateChanged(Switched)
+            note right: After 1 second,\nreturn to Switched display
+            
+        end
+        
+        deactivate SceneSwitcher
+        
+    else Rule not found or disabled or scene mismatch
+        note right of ObsSceneSwitcher
+          LOG_WARNING:
+          "No matching enabled rule"
+          (checks: rewardId + enabled + scene)
+        end note
+    end
+    
+end
+
+deactivate ObsSceneSwitcher
+
+... After revertSeconds elapsed ...
+
+SceneSwitcher -> SceneSwitcher : onRevertTimeout()
+activate SceneSwitcher
+
+SceneSwitcher -> SceneSwitcher : state_ = Reverting
+SceneSwitcher -> SceneSwitcher : emit stateChanged(\nReverting, -1, originalScene, "")
+
+SceneSwitcher -> DockMainWidget : updateState(\n"⏱ 復帰中: originalScene へ")
+
+SceneSwitcher -> OBS : setCurrentScene(originalScene)
+
+SceneSwitcher -> SceneSwitcher : state_ = Idle
+SceneSwitcher -> SceneSwitcher : emit stateChanged(Idle)
+
+SceneSwitcher -> DockMainWidget : updateState("🟢 待機中")
+SceneSwitcher -> DockMainWidget : updateCountdown(-1)
+
+deactivate SceneSwitcher
+
+@enduml

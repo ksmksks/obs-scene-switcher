@@ -1,0 +1,71 @@
+@startuml uml_sequence_oauth_authentication
+
+title OAuth Authentication Flow
+
+actor User
+participant LoginWidget
+participant ObsSceneSwitcher
+participant HttpServer
+participant TwitchOAuth
+participant Browser
+participant "Twitch OAuth" as Twitch
+participant ConfigManager
+
+User -> LoginWidget : Click "Twitch でログイン"
+LoginWidget -> ObsSceneSwitcher : startOAuthLogin()
+
+ObsSceneSwitcher -> HttpServer : start(port=38915, callback)
+activate HttpServer
+note right: HTTP server starts\nlistening on localhost:38915
+
+ObsSceneSwitcher -> TwitchOAuth : startOAuthLogin()
+TwitchOAuth -> ConfigManager : getClientId(), getClientSecret()
+ConfigManager --> TwitchOAuth : clientId, clientSecret
+
+TwitchOAuth -> TwitchOAuth : buildAuthUrl()
+TwitchOAuth -> Browser : open(authUrl)
+Browser -> Twitch : GET /oauth2/authorize
+
+User -> Browser : Click "Authorize"
+Twitch -> HttpServer : GET /callback?code=XXX
+HttpServer -> ObsSceneSwitcher : handleOAuthCallback(code)
+
+ObsSceneSwitcher -> TwitchOAuth : exchangeCodeForToken(code)
+TwitchOAuth -> Twitch : POST /oauth2/token
+Twitch --> TwitchOAuth : access_token, refresh_token, expires_in
+
+TwitchOAuth -> TwitchOAuth : Calculate expiresAt\n= now() + expires_in
+
+TwitchOAuth -> Twitch : GET /helix/users
+Twitch --> TwitchOAuth : user info (id, login, display_name)
+
+TwitchOAuth -> ConfigManager : setAccessToken()\nsetRefreshToken()\nsetTokenExpiresAt()\nsetBroadcasterUserId()\nsetBroadcasterLogin()\nsetBroadcasterDisplayName()
+ConfigManager -> ConfigManager : save()
+
+TwitchOAuth --> ObsSceneSwitcher : success
+
+ObsSceneSwitcher -> ConfigManager : getAccessToken()\ngetRefreshToken()\ngetTokenExpiresAt()
+ConfigManager --> ObsSceneSwitcher : credentials
+
+ObsSceneSwitcher -> ObsSceneSwitcher : authenticated_ = true
+
+ObsSceneSwitcher -> ObsSceneSwitcher : emit authenticationSucceeded()
+
+ObsSceneSwitcher -> TwitchOAuth : fetchChannelRewards()
+TwitchOAuth -> Twitch : GET /helix/channel_points/custom_rewards
+Twitch --> TwitchOAuth : rewards list
+TwitchOAuth --> ObsSceneSwitcher : vector<RewardInfo>
+
+ObsSceneSwitcher -> PluginDock : onAuthenticationSucceeded()\n[via signal]
+PluginDock -> PluginDock : showMain()
+
+note right of PluginDock
+  UI switches to
+  DockMainWidget
+  Shows green ●
+end note
+
+HttpServer -> HttpServer : stop()
+deactivate HttpServer
+
+@enduml

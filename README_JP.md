@@ -2,6 +2,8 @@
 
 Twitch チャンネルポイントで OBS のシーンを自動切り替えするプラグインです。
 
+> **⚠️ ベータ版**: これは v0.9.0 ベータ版です。不具合やフィードバックは [GitHub Issues](https://github.com/ksmksks/obs-scene-switcher/issues) までお願いします。
+
 ## 機能
 
 - **Twitch チャンネルポイント連携**: チャンネルポイントの使用をトリガーにシーンを自動切り替え
@@ -19,13 +21,44 @@ Twitch チャンネルポイントで OBS のシーンを自動切り替えす�
 - **OS**: Windows 10/11 (64-bit)
 - **Twitch アカウント**
 
-### インストール手順
+> **注意**: これはベータ版です。v1.0.0 で安定版をリリース予定です。
 
-1. [Releases](https://github.com/ksmksks/obs-scene-switcher/releases) から最新版をダウンロード
-2. ダウンロードした ZIP ファイルを展開
-3. `obs-scene-switcher.dll` を OBS のプラグインフォルダにコピー
-   - デフォルト: `C:\Program Files\obs-studio\obs-plugins\64bit\`
+### 方法1: インストーラー（推奨）
+
+1. 最新リリースから [obs-scene-switcher-0.9.0-installer.exe](https://github.com/ksmksks/obs-scene-switcher/releases/latest) をダウンロード
+2. 管理者としてインストーラーを実行
+3. インストールウィザードに従う
+   - OBS Studio は自動的に検出されます
+   - インストーラーが適切なディレクトリにファイルを配置します
 4. OBS Studio を再起動
+
+インストーラーは以下を実行します：
+- OBS Studio のインストール先を自動検出
+- プラグインファイルを OBS ディレクトリにインストール
+- 簡単にアンインストールできるよう Windows の設定に登録
+
+### 方法2: 手動インストール
+
+1. 最新リリースから [obs-scene-switcher-0.9.0-manual.zip](https://github.com/ksmksks/obs-scene-switcher/releases/latest) をダウンロード
+2. ZIP ファイルを展開
+3. `obs-plugins` フォルダを OBS Studio ディレクトリにコピー
+   - デフォルト: `C:\Program Files\obs-studio\`
+4. `data` フォルダを OBS Studio ディレクトリにコピー
+5. OBS Studio を再起動
+
+**注意**: 手動インストールには管理者権限は不要です。
+
+### アンインストール
+
+#### Windows 設定から
+1. **設定** → **アプリ** を開く
+2. **「OBS Scene Switcher」** を検索
+3. **アンインストール** をクリック
+
+#### アンインストーラーから
+`C:\Program Files\obs-scene-switcher\uninstall.exe` を実行
+
+アンインストーラーはプラグインファイルのみを削除し、OBS Studio には影響しません。
 
 ## 事前準備
 
@@ -88,7 +121,7 @@ obs-scene-switcher の設定画面で以下を入力します：
 
 1. OBS を起動
 2. 「ドック」→「Scene Switcher」を選択
-3. Dock に表示される「認証設定」ボタンをクリックし、「Client ID」「Client Secret」を入力し、「保存」ボタンをクリック
+3. 「認証設定」ボタンをクリックし、Client ID と Client Secret を入力し、「保存」ボタンをクリック
 4. 「Twitch でログイン」ボタンをクリック
 5. ブラウザで Twitch の認証画面が開くので、「Authorize」をクリック
 6. 認証が完了すると、Dock に緑色の●が表示されます
@@ -214,14 +247,92 @@ Dock には現在の状態が表示されます：
 [obs-scene-switcher] Matched rule: Any -> ターゲットシーン (revert: 10 sec)
 ```
 
+## ロードマップ
+
+**現在のステータス**: ベータ版 (v0.9.0) - テストとフィードバック収集中  
+**次のリリース**: ベータ検証後に v1.0.0 安定版をリリース予定
+
+### v0.9.x — ベータ検証
+
+- ユーザーフィードバックに基づくバグ修正
+- 安定性の向上
+- ドキュメントの更新
+- UX の改善
+
+---
+
+### v1.0.0 — 安定版リリース（予定）
+
+コアとなる OBS シーン切替機能を確定します。
+今後の開発は、既存のシーン切替動作を維持したまま、
+拡張機能を段階的に追加することに焦点を当てます。
+
+---
+
+### v1.1.x — アクション実行基盤（予定）
+
+- アクション処理のための統一実行モデルの導入
+- Action Types によるシーン切替と外部アクションの抽象化
+- 安全かつ拡張可能な機能追加を可能にする内部リファクタリング
+
+---
+
+### v1.2.x — VTube Studio 連携（基本）（予定）
+
+- VTube Studio への接続サポート
+- Twitch チャンネルポイントによるアバター表情（Expression / Hotkey）のトリガー
+- UI から利用可能な表情の取得と選択
+- 単発表情実行（自動復帰なし）
+
+---
+
+### v1.3.x — 高度な表情制御（予定）
+
+- 指定時間後の表情の自動復帰
+- 表情切替中の競合抑制
+- 単一ルール内での複合アクション
+  - OBS シーン切替 + VTube Studio 表情
+
+---
+
+### 今後の検討事項
+
+- より柔軟なアクション定義
+- 配信向けの追加機能
+- コミュニティフィードバックに基づく改善
+
+アーキテクチャ設計原則とバージョン規則については  
+[doc/architecture.md](doc/architecture.md) と [doc/versioning.md](doc/versioning.md) を参照してください。
+
 ## 開発者向け情報
 
-### ビルド方法
+### ビルド手順
+
+#### プラグインのビルド
 
 ```powershell
 cmake --preset windows-x64
-cmake --build --preset windows-x64 --parallel
+cmake --build --preset windows-x64 --config Release --parallel
 ```
+
+#### インストーラーのビルド（NSIS が必要）
+
+1. [NSIS 3.x (Unicode)](https://nsis.sourceforge.io/) をインストール
+2. インストーラーをビルド:
+
+```powershell
+cmake --build build_x64 --target installer --config Release
+```
+
+出力: `installer/obs-scene-switcher-{version}-installer.exe`
+
+#### 手動インストール用 ZIP のビルド
+
+```powershell
+cmake --build build_x64 --target package-zip --config Release
+```
+
+出力: `release/obs-scene-switcher-{version}-manual.zip`
 
 詳細は [doc/architecture.md](doc/architecture.md) と [doc/versioning.md](doc/versioning.md) を参照してください。
 
@@ -238,6 +349,13 @@ cmake --build --preset windows-x64 --parallel
 GNU General Public License v2.0
 
 Copyright (C) 2025 ksmksks
+
+このソフトウェアは GPL-2.0 ライセンスのもとで公開されています。
+詳細は [LICENSE](LICENSE) ファイルをご覧ください。
+
+## 謝辞
+
+このプロジェクトは、[OBS Project](https://github.com/obsproject) によって作成された [obs-plugintemplate](https://github.com/obsproject/obs-plugintemplate) を使用して開発されました。
 
 ## クレジット
 

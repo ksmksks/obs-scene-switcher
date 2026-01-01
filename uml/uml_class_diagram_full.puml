@@ -1,0 +1,274 @@
+@startuml uml_class_diagram_full
+
+title OBS Scene Switcher - Class Diagram
+
+class ObsSceneSwitcher {
+    - static ObsSceneSwitcher* s_instance_
+    - PluginDock* pluginDock_
+    - unique_ptr<SceneSwitcher> sceneSwitcher_
+    - bool pluginEnabled_
+    - bool authenticated_
+    - bool eventsubConnected_
+    - string clientId_
+    - string clientSecret_
+    - string accessToken_
+    - string refreshToken_
+    - long expiresAt_
+    - vector<RewardRule> rewardRules_
+    - vector<RewardInfo> rewardList_
+    + {static} instance() : ObsSceneSwitcher*
+    + {static} destroy()
+    + start()
+    + stop()
+    + setEnabled(bool)
+    + isEnabled() : bool
+    + isAuthenticated() : bool
+    + startOAuthLogin()
+    + handleOAuthCallback(code)
+    + logout()
+    + connectEventSub()
+    + disconnectEventSub()
+    + setRewardRules(rules)
+    + fetchRewardList()
+    + loadConfig()
+    + saveConfig()
+    --signals--
+    + authenticationSucceeded()
+    + authenticationFailed()
+    + enabledStateChanged(bool)
+    + loggedOut()
+    --slots--
+    + onRedemptionReceived(rewardId, userName, userInput)
+    + onSceneSwitcherStateChanged(state, remaining, target, original)
+}
+
+class PluginDock {
+    - {static} PluginDock* s_instance_
+    - QWidget* mainWidget_
+    - QStackedLayout* layout_
+    - LoginWidget* loginWidget_
+    - DockMainWidget* mainDockWidget_
+    - SettingsWindow* settingsWindow_
+    + {static} instance() : PluginDock*
+    + {static} registerDock()
+    + getWidget() : QWidget*
+    + showLogin()
+    + showMain()
+    --slots--
+    + onAuthenticationSucceeded()
+    + onAuthenticationFailed()
+    + onLoggedOut()
+    + onSettingsRequested()
+}
+
+class DockMainWidget {
+    - QLabel* stateLabel_
+    - QLabel* countdownLabel_
+    - QLabel* authStatusLabel_
+    - QPushButton* enableButton_
+    - QPushButton* settingsButton_
+    - QPushButton* logoutButton_
+    + updateState(QString)
+    + updateCountdown(int)
+    + updateEnabledState(bool)
+    --signals--
+    + enableToggleRequested(bool)
+    + settingsRequested()
+    + logoutRequested()
+}
+
+class LoginWidget {
+    - QPushButton* loginButton_
+    - QPushButton* authSettingsButton_
+    --signals--
+    + loginClicked()
+    + authSettingsClicked()
+}
+
+class SettingsWindow {
+    - QListWidget* ruleListWidget_
+    - QPushButton* addButton_
+    - QPushButton* saveButton_
+    - vector<RewardInfo> rewardList_
+    + loadRules(vector<RewardRule>)
+    + loadRewardList(vector<RewardInfo>)
+    + loadSceneList(QStringList)
+    - saveRules()
+    - addRule()
+    - removeRule(RuleRow*)
+    - onRuleOrderChanged()
+}
+
+class RuleRow {
+    - QCheckBox* enabledCheckBox_
+    - QComboBox* originalSceneBox_
+    - QComboBox* rewardBox_
+    - QComboBox* targetSceneBox_
+    - QSpinBox* revertSpin_
+    - QPushButton* removeButton_
+    - vector<RewardInfo> rewardList_
+    + setSceneList(QList<QString>)
+    + setRewardList(vector<RewardInfo>)
+    + setRule(RewardRule)
+    + rule() : RewardRule
+    + enabled() : bool
+    + rewardId() : string
+    + currentScene() : QString
+    + targetScene() : QString
+    + revertSeconds() : int
+    - updateVisualState()
+    --signals--
+    + removeRequested(RuleRow*)
+}
+
+class SceneSwitcher {
+    - State state_
+    - QTimer revertTimer_
+    - QTimer countdownTimer_
+    - QString originalScene_
+    - QString currentTargetScene_
+    - int totalRevertSeconds_
+    + switchScene(sceneName)
+    + switchWithRevert(RewardRule)
+    + getSceneList() : QStringList
+    + getCurrentSceneName() : QString
+    --signals--
+    + stateChanged(State, remaining, target, original)
+    --slots--
+    - onRevertTimeout()
+    - onCountdownTick()
+}
+
+enum State {
+    Idle
+    Switched
+    Reverting
+    Suppressed
+}
+
+class ConfigManager {
+    - {static} ConfigManager* s_instance_
+    - string configPath_
+    - string clientId_
+    - string clientSecret_
+    - string accessToken_
+    - string refreshToken_
+    - long tokenExpiresAt_
+    - string broadcasterUserId_
+    - string broadcasterLogin_
+    - string broadcasterDisplayName_
+    - bool pluginEnabled_
+    - vector<RewardRule> rewardRules_
+    + {static} instance() : ConfigManager&
+    + load()
+    + save()
+    + isAuthValid() : bool
+    + isTokenExpired() : bool
+    + getClientId() : string
+    + getAccessToken() : string
+    + getRewardRules() : vector<RewardRule>
+    + setPluginEnabled(bool)
+    + setRewardRules(vector<RewardRule>)
+}
+
+class TwitchOAuth {
+    - {static} TwitchOAuth* s_instance_
+    - string clientId_
+    - string clientSecret_
+    - string accessToken_
+    - string refreshToken_
+    - long expiresAt_
+    - string broadcasterUserId_
+    - string broadcasterLogin_
+    - string displayName_
+    + {static} instance() : TwitchOAuth&
+    + startOAuthLogin()
+    + exchangeCodeForToken(code) : bool
+    + refreshAccessToken() : bool
+    + fetchChannelRewards() : vector<RewardInfo>
+    + getAccessToken() : string
+    + getRefreshToken() : string
+    + getExpiresAt() : long
+    - buildAuthUrl() : string
+    - fetchUserInfo() : bool
+}
+
+class EventSubClient {
+    - {static} EventSubClient* s_instance_
+    - unique_ptr<ix::WebSocket> ws_
+    - string sessionId_
+    - string accessToken_
+    - string broadcasterId_
+    - string clientId_
+    + {static} instance() : EventSubClient&
+    + start(accessToken, broadcasterId, clientId)
+    + stop()
+    --signals--
+    + redemptionReceived(rewardId, userName, userInput)
+    - onMessage(message)
+    - handleSessionWelcome(json)
+    - handleNotification(json)
+    - subscribeToRedemptions()
+}
+
+struct RewardRule {
+    + string rewardId
+    + string sourceScene
+    + string targetScene
+    + int revertSeconds
+    + bool enabled
+}
+
+struct RewardInfo {
+    + string id
+    + string title
+}
+
+class HttpServer {
+    - {static} HttpServer* s_instance_
+    - function<void(string)> callback_
+    - bool running_
+    + {static} instance() : HttpServer*
+    + start(port, callback)
+    + stop()
+    - handleRequest(request) : string
+}
+
+' Relationships
+ObsSceneSwitcher *-- SceneSwitcher
+ObsSceneSwitcher --> ConfigManager
+ObsSceneSwitcher --> TwitchOAuth
+ObsSceneSwitcher --> EventSubClient
+ObsSceneSwitcher --> HttpServer
+ObsSceneSwitcher --> PluginDock
+
+PluginDock *-- LoginWidget
+PluginDock *-- DockMainWidget
+PluginDock *-- SettingsWindow
+
+SettingsWindow *-- "many" RuleRow
+
+SceneSwitcher *-- State
+
+ConfigManager *-- "many" RewardRule
+
+TwitchOAuth ..> RewardInfo : creates
+
+EventSubClient ..> ObsSceneSwitcher : signals
+
+note right of RewardRule
+  sourceScene matching:
+  - Empty or "Any" → Match any scene
+  - Specific name → Match current scene
+  
+  Rule evaluation: top-to-bottom
+  First enabled + matching rule executes
+end note
+
+note right of SceneSwitcher
+  getCurrentSceneName() used by
+  ObsSceneSwitcher for scene matching
+  in rule evaluation
+end note
+
+@enduml

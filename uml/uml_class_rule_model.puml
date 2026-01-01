@@ -1,0 +1,105 @@
+@startuml uml_class_rule_model
+
+title Reward Rule Model
+
+class RewardRule {
+    + string rewardId
+    + string sourceScene
+    + string targetScene
+    + int revertSeconds
+    + bool enabled
+}
+
+class RewardInfo {
+    + string id
+    + string title
+}
+
+class RuleRow {
+    - QCheckBox* enabledCheckBox_
+    - QComboBox* originalSceneBox_
+    - QComboBox* rewardBox_
+    - QComboBox* targetSceneBox_
+    - QSpinBox* revertSpin_
+    - QPushButton* removeButton_
+    - vector<RewardInfo> rewardList_
+    + setSceneList(QList<QString>)
+    + setRewardList(vector<RewardInfo>)
+    + setRule(RewardRule)
+    + rule() : RewardRule
+    + enabled() : bool
+    + rewardId() : string
+    + currentScene() : QString
+    + targetScene() : QString
+    + revertSeconds() : int
+    - updateVisualState()
+    --signals--
+    + removeRequested(RuleRow*)
+}
+
+class SettingsWindow {
+    - QListWidget* ruleListWidget_
+    - vector<RewardInfo> rewardList_
+    + loadRules(vector<RewardRule>)
+    + loadRewardList(vector<RewardInfo>)
+    + loadSceneList(QStringList)
+    - saveRules()
+    - addRule()
+    - removeRule(RuleRow*)
+    - onRuleOrderChanged()
+}
+
+class ConfigManager {
+    - vector<RewardRule> rewardRules_
+    + getRewardRules() : vector<RewardRule>
+    + setRewardRules(vector<RewardRule>)
+    + save()
+    + load()
+}
+
+' Relationships
+SettingsWindow "1" *-- "many" RuleRow : contains
+RuleRow ..> RewardRule : creates/edits
+RuleRow ..> RewardInfo : displays
+SettingsWindow ..> ConfigManager : saves to
+ConfigManager *-- "many" RewardRule : stores
+
+note top of RewardRule
+  sourceScene field:
+  - Empty string or "Any" = Match any scene
+  - Specific scene name = Match only that scene
+  
+  enabled flag controls whether rule is active
+  "Any" option provides flexible scene matching
+end note
+
+note right of RuleRow
+  Source Scene ComboBox:
+  - First item: "任意(Any)" with data="Any"
+  - Remaining items: Actual scene names
+  
+  currentScene() returns:
+  - "Any" if 任意(Any) is selected
+  - Scene name otherwise
+  
+  Features:
+  - Enable/disable checkbox
+  - Visual feedback (gray out when disabled)
+  - Drag-and-drop reordering
+  - "Any" scene option for flexible matching
+end note
+
+note left of SettingsWindow
+  Rule Evaluation Order:
+  1. Check rewardId match
+  2. Check enabled flag
+  3. Check sourceScene:
+     - "Any" or empty → Always match
+     - Specific name → Check current scene
+  
+  First matching rule executes.
+  Best practice: Place specific scene rules
+  above "Any" rules for priority control.
+end note
+
+@enduml

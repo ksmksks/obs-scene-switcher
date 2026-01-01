@@ -38,8 +38,9 @@
     },
     "name": "obs-scene-switcher",
     "displayName": "Scene Switcher for OBS",
-    "version": "0.8.0",
+    "version": "0.9.0",
     "author": "ksmksks",
     "website": "https://twitch.tv/ksmksks",
-    "email": "m4ks.ksmksks@gmail.com"
+    "email": "m4ks.ksmksks@gmail.com",
+    "description": "OBS plugin to switch scenes based on Twitch Channel Point redemptions"
 }
