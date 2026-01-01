@@ -65,7 +65,7 @@ static std::string DPAPIDecrypt(const std::string &encrypted)
 	}
 
 	DWORD err = GetLastError();
-	blog(LOG_ERROR, "[ConfigManager] DPAPI decrypt failed (size=%lu, GetLastError=%lu)", input.cbData, err);
+	blog(LOG_ERROR, "[obs-scene-switcher] DPAPI decrypt failed (size=%lu, GetLastError=%lu)", input.cbData, err);
 
 	return {};
 }
@@ -89,21 +89,21 @@ static std::string base64_encode(const std::string &input)
 static std::string base64_decode(const std::string &input)
 {
 	if (input.empty()) {
-		blog(LOG_ERROR, "[ConfigManager] Base64 decode failed: input is empty");
+		blog(LOG_ERROR, "[obs-scene-switcher] Base64 decode failed: input is empty");
 		return {};
 	}
 
 	DWORD outLen = 0;
 	if (!CryptStringToBinaryA(input.c_str(), (DWORD)input.length(), CRYPT_STRING_BASE64, nullptr, &outLen, nullptr,
 				  nullptr)) {
-		blog(LOG_ERROR, "[ConfigManager] Base64 length query failed (input length=%zu)", input.size());
+		blog(LOG_ERROR, "[obs-scene-switcher] Base64 length query failed (input length=%zu)", input.size());
 		return {};
 	}
 
 	std::string output(outLen, '\0');
 	if (!CryptStringToBinaryA(input.c_str(), (DWORD)input.length(), CRYPT_STRING_BASE64,
 				  reinterpret_cast<BYTE *>(&output[0]), &outLen, nullptr, nullptr)) {
-		blog(LOG_ERROR, "[ConfigManager] Base64 decode failed (input length=%zu)", input.size());
+		blog(LOG_ERROR, "[obs-scene-switcher] Base64 decode failed (input length=%zu)", input.size());
 		return {};
 	}
 
@@ -114,30 +114,30 @@ std::string secureEncode(const std::string &plain)
 {
 	auto enc = DPAPIEncrypt(plain);
 	if (enc.empty()) {
-		blog(LOG_ERROR, "[ConfigManager] DPAPI encrypt failed (input length=%zu)", plain.size());
+		blog(LOG_ERROR, "[obs-scene-switcher] DPAPI encrypt failed (input length=%zu)", plain.size());
 		return {};
 	}
 
 	auto b64 = base64_encode(enc);
 	if (b64.empty()) {
-		blog(LOG_ERROR, "[ConfigManager] Base64 encode failed (encrypted length=%zu)", enc.size());
+		blog(LOG_ERROR, "[obs-scene-switcher] Base64 encode failed (encrypted length=%zu)", enc.size());
 		return {};
 	}
 
 	return b64;
 }
 
-std::string secureDecode(const std::string &encoded)
+static std::string secureDecode(const std::string &encoded)
 {
 	auto bin = base64_decode(encoded);
 	if (bin.empty()) {
-		blog(LOG_ERROR, "[ConfigManager] secureDecode failed: Base64 decode returned empty");
+		blog(LOG_ERROR, "[obs-scene-switcher] secureDecode failed: Base64 decode returned empty");
 		return {};
 	}
 
 	auto dec = DPAPIDecrypt(bin);
 	if (dec.empty()) {
-		blog(LOG_ERROR, "[ConfigManager] secureDecode failed: DPAPI decrypt returned empty");
+		blog(LOG_ERROR, "[obs-scene-switcher] secureDecode failed: DPAPI decrypt returned empty");
 		return {};
 	}
 
@@ -147,7 +147,7 @@ std::string secureDecode(const std::string &encoded)
 void ConfigManager::save()
 {
 	if (configPath_.empty()) {
-		blog(LOG_ERROR, "[ConfigManager] configPath_ is empty! Save aborted.");
+		blog(LOG_ERROR, "[obs-scene-switcher] configPath_ is empty! Save aborted.");
 		return;
 	}
 
@@ -156,7 +156,7 @@ void ConfigManager::save()
 
 	std::ofstream ofs(configPath_, std::ios::trunc);
 	if (!ofs.is_open()) {
-		blog(LOG_ERROR, "[ConfigManager] Failed to open config file for writing: %s", configPath_.c_str());
+		blog(LOG_ERROR, "[obs-scene-switcher] Failed to open config file for writing: %s", configPath_.c_str());
 		return;
 	}
 
@@ -167,7 +167,7 @@ void ConfigManager::save()
 	ofs << "expires_at=" << expiresAt_ << "\n";
 	ofs << "broadcaster_user_id=" << broadcasterUserId_ << "\n";
 	ofs << "broadcaster_login=" << broadcasterLogin_ << "\n";
-	ofs << "broadcaster_display_name=" << streamerDisplayName_ << "\n";  // プラグイン有効状態を保存（将来の拡張用）
+	ofs << "broadcaster_display_name=" << streamerDisplayName_ << "\n";
 	ofs << "plugin_enabled=" << (pluginEnabled_ ? "1" : "0") << "\n";
 	
 	for (const auto &r : rewardRules_) {
@@ -176,12 +176,12 @@ void ConfigManager::save()
 			{"source_scene", r.sourceScene},
 			{"target_scene", r.targetScene},
 			{"revert_seconds", r.revertSeconds},
-			{"enabled", r.enabled}  // ルールの有効/無効状態を保存
+			{"enabled", r.enabled}
 		};
 		ofs << "rule=" << j.dump() << "\n";
 	}
 
-	blog(LOG_DEBUG, "[ConfigManager] Settings saved successfully to %s", configPath_.c_str());
+	blog(LOG_DEBUG, "[obs-scene-switcher] Settings saved successfully to %s", configPath_.c_str());
 }
 
 void ConfigManager::load()
@@ -193,7 +193,7 @@ void ConfigManager::load()
 
 	std::ifstream ifs(configPath_);
 	if (!ifs.is_open()) {
-		blog(LOG_INFO, "[ConfigManager] Config not found: %s", configPath_.c_str());
+		blog(LOG_DEBUG, "[obs-scene-switcher] Config not found: %s", configPath_.c_str());
 		return;
 	}
 
@@ -216,8 +216,7 @@ void ConfigManager::load()
 				expiresAt_ = std::stol(rawVal);
 			} catch (...) {
 				expiresAt_ = 0;
-				blog(LOG_ERROR,
-				     "[ConfigManager] Failed to parse expires_at (value=\"%s\"). Defaulting to 0.",
+				blog(LOG_ERROR, "[obs-scene-switcher] Failed to parse expires_at (value=\"%s\"). Defaulting to 0.",
 				     rawVal.c_str());
 			}
 		} else if (line.rfind("broadcaster_user_id=", 0) == 0) {
@@ -226,14 +225,14 @@ void ConfigManager::load()
 			broadcasterLogin_ = line.substr(std::string("broadcaster_login=").size());
 		} else if (line.rfind("broadcaster_display_name=", 0) == 0) {
 			streamerDisplayName_ = line.substr(std::string("broadcaster_display_name=").size());
-		} else if (line.rfind("plugin_enabled=", 0) == 0) {  // 内部フィールドは読み込むが、getPluginEnabled()は常にfalseを返す
+		} else if (line.rfind("plugin_enabled=", 0) == 0) {
 			pluginEnabled_ = (line.substr(std::string("plugin_enabled=").size()) == "1");
 		} else if (line.rfind("rule=", 0) == 0) {
 			const std::string raw = line.substr(std::string("rule=").size());
 
 			auto j = json::parse(raw, nullptr, false);
 			if (j.is_discarded()) {
-				blog(LOG_ERROR, "[ConfigManager] Failed to parse rule JSON: %s", raw.c_str());
+				blog(LOG_ERROR, "[obs-scene-switcher] Failed to parse rule JSON: %s", raw.c_str());
 				continue;
 			}
 
@@ -242,7 +241,7 @@ void ConfigManager::load()
 			r.sourceScene = j.value("source_scene", "");
 			r.targetScene = j.value("target_scene", "");
 			r.revertSeconds = j.value("revert_seconds", 0);
-			r.enabled = j.value("enabled", true);  // デフォルトは有効
+			r.enabled = j.value("enabled", true);
 			if (r.rewardId.empty() || r.targetScene.empty())
 				continue;
 

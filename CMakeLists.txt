@@ -76,6 +76,8 @@ set_source_files_properties(
     src/ui/rule_row.cpp
     src/ui/rule_row.hpp
     src/core/reward_rule.hpp
+    src/update/update_checker.cpp
+    src/update/update_checker.hpp
     PROPERTIES LANGUAGE CXX
 )
 
@@ -119,6 +121,10 @@ target_sources(${CMAKE_PROJECT_NAME}
 
         # Core
         src/core/reward_rule.hpp
+        
+        # Update
+        src/update/update_checker.cpp
+        src/update/update_checker.hpp
 )
 
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})

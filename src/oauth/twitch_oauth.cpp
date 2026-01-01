@@ -1,4 +1,4 @@
-﻿// obs-scene-switcher plugin
+// obs-scene-switcher plugin
 // Copyright (C) 2025 ksmksks
 // SPDX-License-Identifier: GPL-2.0-or-later
 
@@ -17,12 +17,12 @@ static const char *SCOPE = "channel:read:redemptions";
 
 TwitchOAuth::TwitchOAuth()
 {
-	blog(LOG_INFO, "[OAuth] TwitchOAuth ctor");
+	blog(LOG_DEBUG, "[obs-scene-switcher][OAuth] TwitchOAuth ctor");
 }
 
 TwitchOAuth::~TwitchOAuth()
 {
-	blog(LOG_INFO, "[OAuth] TwitchOAuth dtor");
+	blog(LOG_DEBUG, "[obs-scene-switcher][OAuth] TwitchOAuth dtor");
 }
 
 void TwitchOAuth::startOAuthLogin()
@@ -32,12 +32,12 @@ void TwitchOAuth::startOAuthLogin()
 	clientSecret_ = cfg.getClientSecret();
 
 	if (clientId_.empty() || clientSecret_.empty()) {
-		blog(LOG_ERROR, "[OAuth] Client ID or Client Secret is not configured");
+		blog(LOG_ERROR, "[obs-scene-switcher] Client ID or Client Secret is not configured");
 		return;
 	}
 
 	std::string url = buildAuthUrl();
-	blog(LOG_INFO, "[OAuth] Opening browser: %s", url.c_str());
+	blog(LOG_INFO, "[obs-scene-switcher] Opening browser for Twitch authentication");
 
 #ifdef _WIN32
 	ShellExecuteA(NULL, "open", url.c_str(), NULL, NULL, SW_SHOWNORMAL);
@@ -57,22 +57,22 @@ bool TwitchOAuth::refreshAccessToken()
 	clientSecret_ = cfg.getClientSecret();
 
 	if (refreshToken_.empty()) {
-		blog(LOG_INFO, "[OAuth] No refresh token available. Skipping refresh.");
+		blog(LOG_DEBUG, "[obs-scene-switcher][OAuth] No refresh token available, skipping refresh");
 		return false;
 	}
 
-	blog(LOG_INFO, "[OAuth] Refreshing access token...");
+	blog(LOG_DEBUG, "[obs-scene-switcher][OAuth] Refreshing access token...");
 
 	auto attemptRefresh = [&]() -> bool {
                 HINTERNET hInet = InternetOpenA("TwitchOAuth", INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
 	        if (!hInet) {
-		        blog(LOG_ERROR, "[OAuth] InternetOpenA failed");
+		        blog(LOG_ERROR, "[obs-scene-switcher] InternetOpenA failed");
 		        return false;
 	        }
 
 	        HINTERNET hConnect = InternetConnectA(hInet, "id.twitch.tv", 443, NULL, NULL, INTERNET_SERVICE_HTTP, 0, 0);
 	        if (!hConnect) {
-		        blog(LOG_ERROR, "[OAuth] InternetConnectA failed");
+		        blog(LOG_ERROR, "[obs-scene-switcher] InternetConnectA failed");
 		        InternetCloseHandle(hInet);
 		        return false;
 	        }
@@ -80,7 +80,7 @@ bool TwitchOAuth::refreshAccessToken()
 	        HINTERNET hRequest =
 		        HttpOpenRequestA(hConnect, "POST", "/oauth2/token", NULL, NULL, NULL, INTERNET_FLAG_SECURE, 0);
 	        if (!hRequest) {
-		        blog(LOG_ERROR, "[OAuth] HttpOpenRequestA failed");
+		        blog(LOG_ERROR, "[obs-scene-switcher] HttpOpenRequestA failed");
 		        InternetCloseHandle(hConnect);
 		        InternetCloseHandle(hInet);
 		        return false;
@@ -94,7 +94,7 @@ bool TwitchOAuth::refreshAccessToken()
 		        			  (DWORD)body.size());
 
 	        if (!requestOk) {
-		        blog(LOG_ERROR, "[OAuth] HttpSendRequestA failed");
+		        blog(LOG_ERROR, "[obs-scene-switcher] HttpSendRequestA failed");
 		        InternetCloseHandle(hRequest);
 		        InternetCloseHandle(hConnect);
 		        InternetCloseHandle(hInet);
@@ -113,7 +113,7 @@ bool TwitchOAuth::refreshAccessToken()
 
 	        auto json = nlohmann::json::parse(response, nullptr, false);
 	        if (json.is_discarded()) {
-		        blog(LOG_ERROR, "[OAuth] Failed to parse refresh response");
+		        blog(LOG_ERROR, "[obs-scene-switcher] Failed to parse refresh response");
 		        return false;
 	        }
 
@@ -122,7 +122,7 @@ bool TwitchOAuth::refreshAccessToken()
 	        expiresAt_ = static_cast<long>(time(nullptr)) + static_cast<long>(json.value("expires_in", 0));
 
 	        if (accessToken_.empty()) {
-		        blog(LOG_ERROR, "[OAuth] refresh failed: access_token empty");
+		        blog(LOG_ERROR, "[obs-scene-switcher] Refresh failed: access_token empty");
 		        return false;
 		}
 		return true;
@@ -130,7 +130,7 @@ bool TwitchOAuth::refreshAccessToken()
 
 	// 1回目試行
 	if (attemptRefresh()) {
-		blog(LOG_INFO, "[OAuth] Token refresh successful");
+		blog(LOG_INFO, "[obs-scene-switcher] Token refresh successful");
 		cfg.setAccessToken(accessToken_);
 		cfg.setRefreshToken(refreshToken_);
 		cfg.setTokenExpiresAt(expiresAt_);
@@ -138,9 +138,9 @@ bool TwitchOAuth::refreshAccessToken()
 	}
 
         // リトライ試行
-	blog(LOG_WARNING, "[OAuth] Refresh failed. Retrying...");
+	blog(LOG_WARNING, "[obs-scene-switcher] Token refresh failed, retrying...");
 	if (attemptRefresh()) {
-		blog(LOG_INFO, "[OAuth] Token refresh succeeded on retry");
+		blog(LOG_INFO, "[obs-scene-switcher] Token refresh succeeded on retry");
 		cfg.setAccessToken(accessToken_);
 		cfg.setRefreshToken(refreshToken_);
 		cfg.setTokenExpiresAt(expiresAt_);
@@ -148,7 +148,7 @@ bool TwitchOAuth::refreshAccessToken()
 	}
 
 	// 失敗時
-	blog(LOG_ERROR, "[OAuth] Refresh failed twice");
+	blog(LOG_ERROR, "[obs-scene-switcher] Token refresh failed after retry");
 	return false;
 }
 
@@ -183,7 +183,7 @@ bool TwitchOAuth::fetchUserInfo()
 			      accessToken_ + "\r\n";
 
 	if (!HttpSendRequestA(hRequest, headers.c_str(), (DWORD)headers.size(), nullptr, 0)) {
-		blog(LOG_ERROR, "[OAuth] Failed to send user info request");
+		blog(LOG_ERROR, "[obs-scene-switcher] Failed to send user info request");
 		return false;
 	}
 
@@ -207,14 +207,14 @@ bool TwitchOAuth::fetchUserInfo()
 	broadcasterLogin_ = user.value("login", "");
 	displayName_ = user.value("display_name", "");
 
-	blog(LOG_INFO, "[OAuth] User: %s (%s)", displayName_.c_str(), broadcasterLogin_.c_str());
+	blog(LOG_INFO, "[obs-scene-switcher] Authenticated as: %s (%s)", displayName_.c_str(), broadcasterLogin_.c_str());
 
 	return true;
 }
 
 bool TwitchOAuth::exchangeCodeForToken(const std::string &code)
 {
-	blog(LOG_INFO, "[OAuth] Exchanging code for token...");
+	blog(LOG_DEBUG, "[obs-scene-switcher][OAuth] Exchanging code for token...");
 
 	HINTERNET hInet = InternetOpenA("TwitchOAuth", INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
 	if (!hInet) return false;
@@ -252,15 +252,15 @@ bool TwitchOAuth::exchangeCodeForToken(const std::string &code)
 	expiresAt_ = json.value("expires_in", 0);
 
 	if (accessToken_.empty()) {
-		blog(LOG_ERROR, "[OAuth] Access token empty");
+		blog(LOG_ERROR, "[obs-scene-switcher] Access token empty");
 		return false;
 	}
 
-	blog(LOG_INFO, "[OAuth] Token exchange complete. Fetching user info...");
+	blog(LOG_DEBUG, "[obs-scene-switcher][OAuth] Token exchange complete, fetching user info...");
 
 	// ユーザー情報取得
 	if (!fetchUserInfo()) {
-		blog(LOG_ERROR, "[OAuth] Failed to fetch user info");
+		blog(LOG_ERROR, "[obs-scene-switcher] Failed to fetch user info");
 		return false;
 	}
 
@@ -287,7 +287,7 @@ std::vector<RewardInfo> TwitchOAuth::fetchChannelRewards()
 	std::string broadcasterUserId = cfg.getBroadcasterUserId();
 
 	if (clientId_.empty() || accessToken_.empty() || broadcasterUserId.empty()) {
-		blog(LOG_ERROR, "[OAuth] Missing credentials for fetchChannelRewards()");
+		blog(LOG_ERROR, "[obs-scene-switcher] Missing credentials for fetchChannelRewards()");
 		return list;
 	}
 
@@ -312,7 +312,7 @@ std::vector<RewardInfo> TwitchOAuth::fetchChannelRewards()
 			      accessToken_ + "\r\n";
 
 	if (!HttpSendRequestA(hRequest, headers.c_str(), (DWORD)headers.size(), nullptr, 0)) {
-		blog(LOG_ERROR, "[OAuth] Reward request failed");
+		blog(LOG_ERROR, "[obs-scene-switcher] Reward request failed");
 		InternetCloseHandle(hRequest);
 		InternetCloseHandle(hConnect);
 		InternetCloseHandle(hInet);
@@ -341,7 +341,7 @@ std::vector<RewardInfo> TwitchOAuth::fetchChannelRewards()
 		list.push_back(info);
 	}
 
-	blog(LOG_INFO, "[OAuth] Fetched %zu channel rewards", list.size());
+	blog(LOG_INFO, "[obs-scene-switcher] Fetched %zu channel rewards", list.size());
 
 	return list;
 }

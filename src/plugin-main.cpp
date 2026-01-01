@@ -20,15 +20,19 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 #include <plugin-support.h>
 
 #include "obs_scene_switcher.hpp"
+#include "update/update_checker.hpp"
 
 OBS_DECLARE_MODULE()
-//OBS_MODULE_USE_DEFAULT_LOCALE(PLUGIN_NAME, "en-US")
 
 bool obs_module_load(void)
 {
 	obs_log(LOG_INFO, "plugin loaded successfully (version %s)", PLUGIN_VERSION);
 
 	ObsSceneSwitcher::instance()->start();
+	
+	// 非同期でアップデートチェック
+	UpdateChecker::checkOnStartupAsync();
+	
 	return true;
 }
 

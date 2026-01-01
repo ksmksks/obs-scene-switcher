@@ -1,4 +1,4 @@
-﻿// obs-scene-switcher plugin
+// obs-scene-switcher plugin
 // Copyright (C) 2025 ksmksks
 // SPDX-License-Identifier: GPL-2.0-or-later
 
@@ -17,13 +17,13 @@ obs_properties_t *PluginProperties::getProperties(void *data)
 
 	obs_properties_add_button(props, "login_button", "Login to Twitch",
 				  [](obs_properties_t *props, obs_property_t *prop, void *data) {
-					  blog(LOG_INFO, "[SceneSwitcher] Login button clicked");
+					  blog(LOG_INFO, "[obs-scene-switcher] Login button clicked");
 					  return true;
 				  });
 
 	obs_properties_add_button(props, "logout_button", "Logout",
 				  [](obs_properties_t *props, obs_property_t *prop, void *data) {
-					  blog(LOG_INFO, "[SceneSwitcher] Logout button clicked");
+					  blog(LOG_INFO, "[obs-scene-switcher] Logout button clicked");
 					  return true;
 				  });
 

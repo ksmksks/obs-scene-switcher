@@ -1,6 +1,6 @@
 /*
-Plugin Name
-Copyright (C) <Year> <Developer> <Email Address>
+obs-scene-switcher plugin
+Copyright (C) 2025 ksmksks
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
