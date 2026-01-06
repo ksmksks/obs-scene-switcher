@@ -2,7 +2,7 @@
 
 An OBS Studio plugin that automatically switches scenes based on Twitch Channel Point redemptions.
 
-> **⚠️ Beta Release**: This is v0.9.0 beta. Please report any issues or feedback at [GitHub Issues](https://github.com/ksmksks/obs-scene-switcher/issues).
+> **⚠️ Current Version**: v0.9.1 beta. Please report any issues or feedback at [GitHub Issues](https://github.com/ksmksks/obs-scene-switcher/issues).
 
 ## Features
 
@@ -12,6 +12,7 @@ An OBS Studio plugin that automatically switches scenes based on Twitch Channel 
 - **Rule Management**: Configure multiple rules with drag-and-drop priority ordering
 - **Conflict Control**: Automatically suppresses duplicate executions during scene transitions
 - **Enable/Disable Toggle**: Quickly enable or disable the plugin with one click
+- **Streaming Sync**: Automatically enables when streaming starts and disables when streaming stops
 
 ## Installation
 
@@ -25,7 +26,7 @@ An OBS Studio plugin that automatically switches scenes based on Twitch Channel 
 
 ### Method 1: Installer (Recommended)
 
-1. Download [obs-scene-switcher-0.9.0-installer.exe](https://github.com/ksmksks/obs-scene-switcher/releases/latest) from the latest release
+1. Download [obs-scene-switcher-0.9.1-installer.exe](https://github.com/ksmksks/obs-scene-switcher/releases/latest) from the latest release
 2. Run the installer as administrator
 3. Follow the installation wizard
    - OBS Studio will be automatically detected
@@ -39,7 +40,7 @@ The installer will:
 
 ### Method 2: Manual Installation
 
-1. Download [obs-scene-switcher-0.9.0-manual.zip](https://github.com/ksmksks/obs-scene-switcher/releases/latest) from the latest release
+1. Download [obs-scene-switcher-0.9.1-manual.zip](https://github.com/ksmksks/obs-scene-switcher/releases/latest) from the latest release
 2. Extract the ZIP file
 3. Copy the `obs-plugins` folder to your OBS Studio directory
    - Default: `C:\Program Files\obs-studio\`
@@ -145,6 +146,11 @@ After saving, OAuth authentication and EventSub connection will become active.
 2. The button should turn green and the status should show "🟢 Waiting"
 3. During your stream, when viewers redeem the channel point, the scene will switch automatically
 
+**Auto-Enable on Streaming:**
+- When you start streaming in OBS, the plugin will automatically enable itself (if authenticated)
+- When you stop streaming, the plugin will automatically disable itself
+- This ensures the plugin is only active during your stream
+
 ### 4. Reorder Rules
 
 - In the settings window, drag the ⋮⋮ handle to reorder rules
@@ -249,17 +255,16 @@ Debug log output (detailed):
 
 ## Roadmap
 
-This is a **beta release (v0.9.0)** for testing and feedback collection.
+This is a **beta release** for testing and feedback collection.
 
-**Current Status**: Beta validation phase  
+**Current Version**: v0.9.1  
 **Next Release**: v1.0.0 stable release after beta feedback
 
-### v0.9.x — Beta Validation
+### v0.9.x — Beta Validation (Current)
 
-- Bug fixes based on user feedback
-- Stability improvements
-- Documentation updates
-- UX refinements
+- v0.9.1 (2025-01-07): Bug fixes and streaming sync feature
+- v0.9.0 (2025-01-07): Initial beta release
+- Ongoing: User feedback collection and improvements
 
 ---
 

@@ -28,6 +28,7 @@ OBS のシーン切替を **状態駆動で安全に実行**することを目�
 
 - **ObsSceneSwitcher**
   - プラグイン全体の制御・状態管理
+  - OBS イベント監視（配信開始/停止）
 
 - **EventSubClient**
   - Twitch EventSub WebSocket 通信
@@ -152,7 +153,38 @@ pluginEnabled_ = false
 UI: "⏸ 待機中（無効）"
 ```
 
-### 3.5 Redemption処理
+### 3.5 配信連動
+
+OBS の配信イベントに応じて自動的に有効/無効を切り替える：
+
+**配信開始時**:
+```
+OBS_FRONTEND_EVENT_STREAMING_STARTED
+  ↓
+isAuthenticated() && !isEnabled() をチェック
+  ↓
+setEnabled(true) → WebSocket 接続
+  ↓
+UI: "🟢 待機中"
+```
+
+**配信停止時**:
+```
+OBS_FRONTEND_EVENT_STREAMING_STOPPED
+  ↓
+isEnabled() をチェック
+  ↓
+setEnabled(false) → WebSocket 切断
+  ↓
+UI: "⏸ 待機中（無効）"
+```
+
+**設計方針**:
+- UI 操作と同じ `setEnabled()` フローを使用
+- 認証済みの場合のみ自動有効化
+- 一貫性のある動作を保証
+
+### 3.6 Redemption処理
 
 Redemption 受信時の処理方針：
 
@@ -295,6 +327,19 @@ v0.9.0 ベータ版の機能：
 - 包括的なドキュメントと UML 図
 
 **ベータ版の目的**: ユーザーフィードバックに基づくバグ修正と改善を行い、v1.0.0 で正式リリース予定。
+
+---
+
+## 9.1 v0.9.1 の追加機能
+
+v0.9.1 では以下の改善が追加された：
+
+- シーンリストの動的更新
+- 日本語ロケールの改善
+- **配信連動機能**: OBS の配信開始/停止に応じた自動有効化/無効化
+
+配信連動機能により、プラグインは配信中のみアクティブとなり、
+リソースの効率的な使用と意図しない動作の防止が実現される。
 
 ---
 

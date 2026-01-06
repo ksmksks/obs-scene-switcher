@@ -63,6 +63,10 @@ public:
 	void loadConfig();
 	void saveConfig();
 	void reloadAuthConfig();
+	
+	// OBS イベント処理
+	void setupObsCallbacks();
+	void removeObsCallbacks();
 
 signals:
 	void authenticationSucceeded();
@@ -82,9 +86,13 @@ public slots:
 	                                  const QString &targetScene = QString(),
 	                                  const QString &originalScene = QString());
 
-	private:
+private:
 	ObsSceneSwitcher();
 	~ObsSceneSwitcher();
+	
+	// OBS イベントコールバック
+	static void onStreamingStarted(enum obs_frontend_event event, void *private_data);
+	static void onStreamingStopped(enum obs_frontend_event event, void *private_data);
 
 	static ObsSceneSwitcher *s_instance_;
 
@@ -96,6 +104,9 @@ public slots:
 	
 	// プラグイン有効状態（起動時は常にfalse）
 	bool pluginEnabled_ = false;
+	
+	// 配信開始前の有効状態を記憶（配信終了時に復元）
+	bool wasEnabledBeforeStreaming_ = false;
 
 	std::string clientId_;
 	std::string clientSecret_;

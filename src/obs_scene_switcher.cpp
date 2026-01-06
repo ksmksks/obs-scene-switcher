@@ -11,10 +11,7 @@
 #include "eventsub/eventsub_client.hpp"
 #include "i18n/locale_manager.hpp"
 
-#ifdef _WIN32
-#include <Windows.h>
-#include <shellapi.h>
-#endif
+#include <obs-frontend-api.h>
 
 // OBS logging
 extern "C" {
@@ -125,11 +122,18 @@ void ObsSceneSwitcher::start()
 	
 	// チャンネルポイント一覧を取得
 	fetchRewardList();
+
+	// OBS イベントコールバック登録
+	setupObsCallbacks();
 }
 
 void ObsSceneSwitcher::stop()
 {
 	blog(LOG_DEBUG, "[obs-scene-switcher] Shutting down plugin");
+	
+	// OBS イベントコールバック解除
+	removeObsCallbacks();
+	
 	disconnectEventSub();
 }
 
@@ -408,6 +412,55 @@ void ObsSceneSwitcher::reloadAuthConfig()
 	clientSecret_ = cfg.getClientSecret();
 
 	blog(LOG_DEBUG, "[obs-scene-switcher] Auth config loaded (client_id=%s)", clientId_.empty() ? "(empty)" : "*****");
+}
+
+void ObsSceneSwitcher::setupObsCallbacks()
+{
+	obs_frontend_add_event_callback(
+		[](enum obs_frontend_event event, void *private_data) {
+			auto *self = static_cast<ObsSceneSwitcher*>(private_data);
+			
+			switch (event) {
+			case OBS_FRONTEND_EVENT_STREAMING_STARTED:
+				// 配信開始時：認証済みなら自動的に有効化
+				if (self->isAuthenticated() && !self->isEnabled()) {
+					blog(LOG_INFO, "[obs-scene-switcher] Streaming started - auto-enabling plugin");
+					self->setEnabled(true);
+				}
+				break;
+				
+			case OBS_FRONTEND_EVENT_STREAMING_STOPPED:
+				// 配信停止時：自動的に無効化
+				if (self->isEnabled()) {
+					blog(LOG_INFO, "[obs-scene-switcher] Streaming stopped - auto-disabling plugin");
+					self->setEnabled(false);
+				}
+				break;
+				
+			default:
+				break;
+			}
+		},
+		this
+	);
+}
+
+void ObsSceneSwitcher::removeObsCallbacks()
+{
+	obs_frontend_remove_event_callback(
+		[](enum obs_frontend_event event, void *private_data) {
+			auto *self = static_cast<ObsSceneSwitcher*>(private_data);
+			
+			switch (event) {
+			case OBS_FRONTEND_EVENT_STREAMING_STARTED:
+			case OBS_FRONTEND_EVENT_STREAMING_STOPPED:
+				break;
+			default:
+				break;
+			}
+		},
+		this
+	);
 }
 
 extern "C" {

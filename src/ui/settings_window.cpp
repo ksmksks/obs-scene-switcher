@@ -17,6 +17,7 @@
 #include <QPushButton>
 #include <QScrollArea>
 #include <QListWidget>
+#include <QShowEvent>
 
 SettingsWindow::SettingsWindow(QWidget *parent) : QDialog(parent)
 {
@@ -77,19 +78,29 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QDialog(parent)
 	connect(saveButton_, &QPushButton::clicked, this, &SettingsWindow::onSaveClicked);
 	connect(closeButton_, &QPushButton::clicked, this, &SettingsWindow::onCloseClicked);
 
-	// ---- ここで SceneSwitcher からシーン一覧を取得する ----
-	{
-		SceneSwitcher sceneSwitcherTool;
-		sceneList_ = sceneSwitcherTool.getSceneList();
-	}
-
-	// ---- Twitch Reward list を取得 ----
-	{
-		// 初回ロード時にリワード一覧を取得
-		rewardList_ = ObsSceneSwitcher::instance()->getRewardList();
-	}
+	// 初回のシーン一覧とリワード一覧を取得
+	refreshSceneList();
+	rewardList_ = ObsSceneSwitcher::instance()->getRewardList();
 
 	loadRules();
+}
+
+void SettingsWindow::showEvent(QShowEvent *event)
+{
+	QDialog::showEvent(event);
+	
+	// ウィンドウが表示されるたびにシーン一覧を更新
+	refreshSceneList();
+}
+
+void SettingsWindow::refreshSceneList()
+{
+	SceneSwitcher sceneSwitcherTool;
+	QStringList newSceneList = sceneSwitcherTool.getSceneList();
+	
+	if (newSceneList != sceneList_) {
+		setSceneList(newSceneList);
+	}
 }
 
 void SettingsWindow::setSceneList(const QStringList &scenes)

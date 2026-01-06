@@ -35,6 +35,9 @@ signals:
 	// 「保存」が押されたあとに通知（ConfigManager 側で拾う想定）
 	void rulesSaved();
 
+protected:
+	void showEvent(QShowEvent *event) override;
+
 private slots:
 	void onAddRuleClicked();
 	void onSaveClicked();
@@ -46,6 +49,7 @@ private:
 
 	void loadRules();
 	void saveRules();
+	void refreshSceneList();
 
 	QListWidget *rulesListWidget_ = nullptr;  // ドラッグ&ドロップ対応
 	QPushButton *addRuleButton_ = nullptr;
