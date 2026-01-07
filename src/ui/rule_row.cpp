@@ -105,6 +105,11 @@ RuleRow::RuleRow(QWidget *parent) : QWidget(parent)
 
 void RuleRow::setSceneList(const QList<QString> &scenes)
 {
+	// 現在の選択を保存
+	QString currentSourceScene = currentScene();
+	QString currentTargetScene = targetSceneBox_->currentText();
+	
+	// コンボボックスをクリアして再構築
 	originalSceneBox_->clear();
 	targetSceneBox_->clear();
 	
@@ -114,6 +119,26 @@ void RuleRow::setSceneList(const QList<QString> &scenes)
 	
 	// 切替先シーンには通常のシーンのみ
 	targetSceneBox_->addItems(scenes);
+	
+	// 以前の選択を復元
+	if (currentSourceScene == "Any") {
+		// 「任意(Any)」を選択
+		originalSceneBox_->setCurrentIndex(0);
+	} else if (!currentSourceScene.isEmpty()) {
+		// 特定のシーンを選択（存在する場合）
+		int index = originalSceneBox_->findText(currentSourceScene);
+		if (index >= 0) {
+			originalSceneBox_->setCurrentIndex(index);
+		}
+	}
+	
+	// 切替先シーンの選択を復元
+	if (!currentTargetScene.isEmpty()) {
+		int index = targetSceneBox_->findText(currentTargetScene);
+		if (index >= 0) {
+			targetSceneBox_->setCurrentIndex(index);
+		}
+	}
 }
 
 void RuleRow::setRewardList(const std::vector<RewardInfo> &rewards)

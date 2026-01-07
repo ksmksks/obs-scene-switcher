@@ -2,7 +2,7 @@
 
 An OBS Studio plugin that automatically switches scenes based on Twitch Channel Point redemptions.
 
-> **⚠️ Current Version**: v0.9.1 beta. Please report any issues or feedback at [GitHub Issues](https://github.com/ksmksks/obs-scene-switcher/issues).
+> **⚠️ Current Version**: v0.9.2 beta. Please report any issues or feedback at [GitHub Issues](https://github.com/ksmksks/obs-scene-switcher/issues).
 
 ## Features
 
@@ -26,7 +26,7 @@ An OBS Studio plugin that automatically switches scenes based on Twitch Channel 
 
 ### Method 1: Installer (Recommended)
 
-1. Download [obs-scene-switcher-0.9.1-installer.exe](https://github.com/ksmksks/obs-scene-switcher/releases/latest) from the latest release
+1. Download [obs-scene-switcher-0.9.2-installer.exe](https://github.com/ksmksks/obs-scene-switcher/releases/latest) from the latest release
 2. Run the installer as administrator
 3. Follow the installation wizard
    - OBS Studio will be automatically detected
@@ -40,7 +40,7 @@ The installer will:
 
 ### Method 2: Manual Installation
 
-1. Download [obs-scene-switcher-0.9.1-manual.zip](https://github.com/ksmksks/obs-scene-switcher/releases/latest) from the latest release
+1. Download [obs-scene-switcher-0.9.2-manual.zip](https://github.com/ksmksks/obs-scene-switcher/releases/latest) from the latest release
 2. Extract the ZIP file
 3. Copy the `obs-plugins` folder to your OBS Studio directory
    - Default: `C:\Program Files\obs-studio\`
@@ -257,11 +257,12 @@ Debug log output (detailed):
 
 This is a **beta release** for testing and feedback collection.
 
-**Current Version**: v0.9.1  
+**Current Version**: v0.9.2  
 **Next Release**: v1.0.0 stable release after beta feedback
 
 ### v0.9.x — Beta Validation (Current)
 
+- v0.9.2 (2025-01-07): Critical bug fix for scene selection preservation
 - v0.9.1 (2025-01-07): Bug fixes and streaming sync feature
 - v0.9.0 (2025-01-07): Initial beta release
 - Ongoing: User feedback collection and improvements

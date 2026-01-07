@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.9.2] - 2025-01-07
+
+Critical bug fix.
+
+### Fixed
+- **Scene selection preservation**: Rule settings are now correctly preserved when opening settings window after adding/removing scenes in OBS
+  - Scene selections (source and target) are saved before updating the list
+  - Selections are restored after combo boxes are rebuilt
+  - Prevents unintended data loss during scene modifications
+
+---
+
 ## [0.9.1] - 2025-01-07
 
 Bug fixes and UI improvements.
@@ -57,6 +69,7 @@ Initial public beta release.
 - Stable v1.0.0 release planned after beta validation period
 - Please report issues at: https://github.com/ksmksks/obs-scene-switcher/issues
 
-[Unreleased]: https://github.com/ksmksks/obs-scene-switcher/compare/v0.9.1...HEAD
+[Unreleased]: https://github.com/ksmksks/obs-scene-switcher/compare/v0.9.2...HEAD
+[0.9.2]: https://github.com/ksmksks/obs-scene-switcher/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/ksmksks/obs-scene-switcher/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/ksmksks/obs-scene-switcher/releases/tag/v0.9.0
