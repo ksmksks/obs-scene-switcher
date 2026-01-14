@@ -9,6 +9,8 @@
 #include "settings_window.hpp"
 #include "../obs/config_manager.hpp"
 #include "../obs_scene_switcher.hpp"
+#include "../oauth/twitch_oauth.hpp"
+#include "../i18n/locale_manager.hpp"
 
 #include <obs-frontend-api.h>
 #include <QMessageBox>
@@ -40,10 +42,14 @@ PluginDock::PluginDock()
 	layout_->setCurrentWidget(loginWidget_);
 
 	// SettingsWindow のボタンシグナル
-	connect(mainDockWidget_, &DockMainWidget::settingsRequested, this, &PluginDock::onSettingsRequested);  // 有効/無効トグル
+	connect(mainDockWidget_, &DockMainWidget::settingsRequested, this, &PluginDock::onSettingsRequested);
+	
+	// 有効/無効トグル
 	connect(mainDockWidget_, &DockMainWidget::enableToggleRequested, [](bool enabled) {
 		ObsSceneSwitcher::instance()->setEnabled(enabled);
-	});  // 有効状態変更の通知を受け取る
+	});
+	
+	// 有効状態変更の通知を受け取る
 	connect(ObsSceneSwitcher::instance(), &ObsSceneSwitcher::enabledStateChanged,
 	        mainDockWidget_, &DockMainWidget::updateEnabledState);
 
@@ -52,6 +58,10 @@ PluginDock::PluginDock()
 		ObsSceneSwitcher::instance()->logout();
 		PluginDock::instance()->showLogin();
 	});
+	
+	// 認証エラーシグナルを接続
+	connect(&TwitchOAuth::instance(), &TwitchOAuth::authenticationError, 
+	        this, &PluginDock::onAuthenticationError);
 }
 
 void PluginDock::registerDock()
@@ -136,4 +146,11 @@ void PluginDock::showMain()
 		mainDockWidget_->updateEnabledState(false);
 		mainDockWidget_->updateState("⏸ 待機中（無効）");
 	}
+}
+
+void PluginDock::onAuthenticationError(const QString &message)
+{
+	QMessageBox::warning(mainWidget_, 
+		Tr("SceneSwitcher.Message.AuthError"),
+		message);
 }

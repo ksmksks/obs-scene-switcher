@@ -27,6 +27,7 @@ public slots:
 	void onAuthenticationFailed();
 	void onLoggedOut();  // ログアウト処理（エラーダイアログなし）
 	void onSettingsRequested();
+	void onAuthenticationError(const QString &message);  // 認証エラーメッセージ表示
 
 private:
 	PluginDock();

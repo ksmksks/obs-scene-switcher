@@ -2,7 +2,7 @@
 
 Twitch チャンネルポイントで OBS のシーンを自動切り替えするプラグインです。
 
-> **⚠️ 現在のバージョン**: v0.9.2 ベータ版です。不具合やフィードバックは [GitHub Issues](https://github.com/ksmksks/obs-scene-switcher/issues) までお願いします。
+> **⚠️ 現在のバージョン**: v0.9.3 ベータ版です。不具合やフィードバックは [GitHub Issues](https://github.com/ksmksks/obs-scene-switcher/issues) までお願いします。
 
 ## 機能
 
@@ -26,7 +26,7 @@ Twitch チャンネルポイントで OBS のシーンを自動切り替えす�
 
 ### 方法1: インストーラー（推奨）
 
-1. 最新リリースから [obs-scene-switcher-0.9.2-installer.exe](https://github.com/ksmksks/obs-scene-switcher/releases/latest) をダウンロード
+1. 最新リリースから [obs-scene-switcher-0.9.3-installer.exe](https://github.com/ksmksks/obs-scene-switcher/releases/latest) をダウンロード
 2. 管理者としてインストーラーを実行
 3. インストールウィザードに従う
    - OBS Studio は自動的に検出されます
@@ -40,7 +40,7 @@ Twitch チャンネルポイントで OBS のシーンを自動切り替えす�
 
 ### 方法2: 手動インストール
 
-1. 最新リリースから [obs-scene-switcher-0.9.2-manual.zip](https://github.com/ksmksks/obs-scene-switcher/releases/latest) をダウンロード
+1. 最新リリースから [obs-scene-switcher-0.9.3-manual.zip](https://github.com/ksmksks/obs-scene-switcher/releases/latest) をダウンロード
 2. ZIP ファイルを展開
 3. `obs-plugins` フォルダを OBS Studio ディレクトリにコピー
    - デフォルト: `C:\Program Files\obs-studio\`
@@ -257,11 +257,12 @@ Dock には現在の状態が表示されます：
 
 **現在のステータス**: ベータ版 - テストとフィードバック収集中
 
-**現在のバージョン**: v0.9.2  
+**現在のバージョン**: v0.9.3  
 **次のリリース**: ベータ検証後に v1.0.0 安定版をリリース予定
 
 ### v0.9.x — ベータ検証（現在）
 
+- v0.9.3 (2025-01-15): 認証エラーフィードバックの改善
 - v0.9.2 (2025-01-07): シーン選択保持の重大なバグ修正
 - v0.9.1 (2025-01-07): バグ修正と配信連動機能
 - v0.9.0 (2025-01-07): 初回ベータリリース

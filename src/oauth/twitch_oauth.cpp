@@ -4,6 +4,7 @@
 
 #include "twitch_oauth.hpp"
 #include "../obs/config_manager.hpp"
+#include "../i18n/locale_manager.hpp"
 
 #include <obs-module.h>
 #include <nlohmann/json.hpp>
@@ -33,6 +34,7 @@ void TwitchOAuth::startOAuthLogin()
 
 	if (clientId_.empty() || clientSecret_.empty()) {
 		blog(LOG_ERROR, "[obs-scene-switcher] Client ID or Client Secret is not configured");
+		emit authenticationError(Tr("SceneSwitcher.Message.AuthNotConfigured"));
 		return;
 	}
 
