@@ -153,3 +153,27 @@ void SceneSwitcher::onRevertTimeout()
 	state_ = State::Idle;
 	emit stateChanged(State::Idle);
 }
+
+void SceneSwitcher::revertNow()
+{
+	// Manual revert: only valid in Switched state
+	if (state_ != State::Switched) {
+		blog(LOG_DEBUG, "[obs-scene-switcher] revertNow() called but not in Switched state");
+		return;
+	}
+
+	blog(LOG_DEBUG, "[obs-scene-switcher] Manual revert requested");
+
+	// Stop timers
+	revertTimer_.stop();
+	countdownTimer_.stop();
+
+	// Perform revert
+	state_ = State::Reverting;
+	emit stateChanged(State::Reverting, -1, originalScene_, QString());
+
+	switchScene(originalScene_.toStdString());
+
+	state_ = State::Idle;
+	emit stateChanged(State::Idle);
+}

@@ -26,6 +26,7 @@ public:
 	QStringList getSceneList();
 	void switchScene(const std::string &sceneName);
 	void switchWithRevert(const RewardRule &rule);
+	void revertNow();
 	QString getCurrentSceneName() const;
 
 signals:

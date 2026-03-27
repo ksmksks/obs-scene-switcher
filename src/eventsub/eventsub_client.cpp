@@ -179,6 +179,7 @@ void EventSubClient::setupHandlers()
 		switch (msg->type) {
 		case ix::WebSocketMessageType::Open:
 			connected_ = true;
+			resetReconnectAttempts();
 			blog(LOG_INFO, "[obs-scene-switcher] EventSub WebSocket connected");
 			break;
 
@@ -212,9 +213,13 @@ void EventSubClient::setupHandlers()
 
 				connectSocket(nextUrl);
 
-				// コールバック内で start() しない（再入・二重start回避）
-				std::thread([this]() {
-					std::this_thread::sleep_for(std::chrono::milliseconds(200));
+				// 指数バックオフで再接続（レート制限回避）
+				int backoffMs = calculateBackoffMs();
+				reconnectAttempts_++;
+				blog(LOG_DEBUG, "[obs-scene-switcher][EventSub] Reconnecting in %d ms (attempt %d)", backoffMs, reconnectAttempts_.load());
+
+				std::thread([this, backoffMs]() {
+					std::this_thread::sleep_for(std::chrono::milliseconds(backoffMs));
 					if (running_) {
 						websocket_.start();
 					}
@@ -318,4 +323,16 @@ void EventSubClient::handleNotification(const json &json)
 	} catch (const std::exception &e) {
 		blog(LOG_ERROR, "[obs-scene-switcher] Failed to parse EventSub notification payload: %s", e.what());
 	}
+}
+
+int EventSubClient::calculateBackoffMs() const
+{
+        // 指数バックオフ: 1s, 2s, 4s, 8s, 16s, 30s (最大)
+        const int initialDelayMs = 1000; // 1秒
+        const int maxDelayMs = 30000;    // 30秒
+
+        int attempts = reconnectAttempts_.load();
+        int delayMs = initialDelayMs * (1 << attempts); // 2^attempts
+
+        return std::min(delayMs, maxDelayMs);
 }

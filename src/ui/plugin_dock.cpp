@@ -58,10 +58,15 @@ PluginDock::PluginDock()
 		ObsSceneSwitcher::instance()->logout();
 		PluginDock::instance()->showLogin();
 	});
-	
+
+	// シーン復帰ボタン
+	connect(mainDockWidget_, &DockMainWidget::revertRequested, []() {
+		ObsSceneSwitcher::instance()->revertSceneNow();
+	});
+
 	// 認証エラーシグナルを接続
 	connect(&TwitchOAuth::instance(), &TwitchOAuth::authenticationError, 
-	        this, &PluginDock::onAuthenticationError);
+		this, &PluginDock::onAuthenticationError);
 }
 
 void PluginDock::registerDock()

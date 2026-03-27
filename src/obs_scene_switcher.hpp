@@ -56,6 +56,7 @@ public:
 
 	// OBS シーン切り替え
 	void switchScene(const std::string &sceneName);
+	void revertSceneNow();
 
 	void setRewardRules(const std::vector<RewardRule> &rules);
 

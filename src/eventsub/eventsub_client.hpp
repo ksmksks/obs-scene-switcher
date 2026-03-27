@@ -1,4 +1,4 @@
-﻿// obs-scene-switcher plugin
+// obs-scene-switcher plugin
 // Copyright (C) 2025 ksmksks
 // SPDX-License-Identifier: GPL-2.0-or-later
 
@@ -74,4 +74,9 @@ private:
 	std::mutex reconnectMutex_;
 	std::string pendingReconnectUrl_;
 	std::atomic<bool> reconnectRequested_{false};
+
+	// 再接続バックオフ制御
+	std::atomic<int> reconnectAttempts_{0};
+	void resetReconnectAttempts() { reconnectAttempts_ = 0; }
+	int calculateBackoffMs() const;
 };

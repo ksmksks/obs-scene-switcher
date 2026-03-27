@@ -326,8 +326,17 @@ void ObsSceneSwitcher::onRedemptionReceived(const std::string &rewardId, const s
 void ObsSceneSwitcher::switchScene(const std::string &sceneName)
 {
 	blog(LOG_DEBUG, "[obs-scene-switcher] Switching scene to: %s", sceneName.c_str());
-        
+
 	sceneSwitcher_->switchScene(sceneName);
+}
+
+void ObsSceneSwitcher::revertSceneNow()
+{
+	if (!sceneSwitcher_)
+		return;
+
+	blog(LOG_DEBUG, "[obs-scene-switcher] Manual scene revert requested");
+	sceneSwitcher_->revertNow();
 }
 
 void ObsSceneSwitcher::setRewardRules(const std::vector<RewardRule> &rules)
@@ -338,16 +347,18 @@ void ObsSceneSwitcher::setRewardRules(const std::vector<RewardRule> &rules)
 }
 
 void ObsSceneSwitcher::onSceneSwitcherStateChanged(SceneSwitcher::State state, int remainingSeconds,
-                                                    const QString &targetScene, const QString &originalScene)
+						    const QString &targetScene, const QString &originalScene)
 {
 	if (!pluginDock_)
 		return;
-	
+
 	auto *mainWidget = pluginDock_->getWidget()->findChild<DockMainWidget*>();
 	if (!mainWidget)
 		return;
-	
+
 	QString stateText;
+	bool showRevertButton = false;
+
 	switch (state) {
 	case SceneSwitcher::State::Idle:
 		stateText = pluginEnabled_ ? Tr("SceneSwitcher.Status.Idle") : Tr("SceneSwitcher.Status.Disabled");
@@ -360,6 +371,7 @@ void ObsSceneSwitcher::onSceneSwitcherStateChanged(SceneSwitcher::State state, i
 			stateText = Tr("SceneSwitcher.Status.Switching").arg("");
 		}
 		mainWidget->updateCountdown(remainingSeconds);
+		showRevertButton = true;
 		break;
 	case SceneSwitcher::State::Reverting:
 		if (!targetScene.isEmpty()) {
@@ -370,10 +382,12 @@ void ObsSceneSwitcher::onSceneSwitcherStateChanged(SceneSwitcher::State state, i
 		break;
 	case SceneSwitcher::State::Suppressed:
 		stateText = Tr("SceneSwitcher.Status.Suppressed");
+		showRevertButton = true;
 		break;
 	}
-	
+
 	mainWidget->updateState(stateText);
+	mainWidget->setRevertButtonVisible(showRevertButton);
 }
 
 void ObsSceneSwitcher::loadConfig()

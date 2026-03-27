@@ -11,7 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.9.3] - 2025-01-15
+## [0.9.4] - 2026-03-27
+
+UX improvement for manual scene control and critical bug fix for WebSocket stability.
+
+### Added
+- **Manual scene revert button**: Added "Revert Scene Now" button for manual control
+  - Button appears only when scene is switched and waiting for auto-revert
+  - Allows broadcasters to manually revert to original scene without waiting for timer
+  - Fully localized in English and Japanese
+  - Integrated with existing State Machine design
+
+### Fixed
+- **WebSocket reconnection rate limiting**: Implemented exponential backoff to prevent HTTP 429 errors
+  - Fixed rapid reconnection loop that triggered Twitch rate limiting
+  - Reconnection intervals: 1s → 2s → 4s → 8s → 16s → 30s (max)
+  - Prevents excessive API calls to Twitch EventSub endpoint
+
+---
+
+## [0.9.3] - 2026-01-15
 
 UX improvement for authentication flow.
 
@@ -23,7 +42,7 @@ UX improvement for authentication flow.
 
 ---
 
-## [0.9.2] - 2025-01-07
+## [0.9.2] - 2026-01-07
 
 Critical bug fix.
 
@@ -35,7 +54,7 @@ Critical bug fix.
 
 ---
 
-## [0.9.1] - 2025-01-07
+## [0.9.1] - 2026-01-07
 
 Bug fixes and UI improvements.
 
@@ -51,7 +70,7 @@ Bug fixes and UI improvements.
 
 ---
 
-## [0.9.0] - 2025-01-07
+## [0.9.0] - 2026-01-07
 
 Initial public beta release.
 
@@ -81,7 +100,8 @@ Initial public beta release.
 - Stable v1.0.0 release planned after beta validation period
 - Please report issues at: https://github.com/ksmksks/obs-scene-switcher/issues
 
-[Unreleased]: https://github.com/ksmksks/obs-scene-switcher/compare/v0.9.3...HEAD
+[Unreleased]: https://github.com/ksmksks/obs-scene-switcher/compare/v0.9.4...HEAD
+[0.9.4]: https://github.com/ksmksks/obs-scene-switcher/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/ksmksks/obs-scene-switcher/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/ksmksks/obs-scene-switcher/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/ksmksks/obs-scene-switcher/compare/v0.9.0...v0.9.1

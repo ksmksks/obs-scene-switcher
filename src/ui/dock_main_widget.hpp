@@ -1,4 +1,4 @@
-﻿// obs-scene-switcher plugin
+// obs-scene-switcher plugin
 // Copyright (C) 2025 ksmksks
 // SPDX-License-Identifier: GPL-2.0-or-later
 
@@ -28,6 +28,7 @@ public:
 	// 状態セクション
 	void updateState(const QString &stateText);
 	void updateCountdown(int seconds);
+	void setRevertButtonVisible(bool visible);
 
 signals:
 	/// 「設定を開く」ボタン
@@ -39,6 +40,9 @@ signals:
 	/// ログアウトボタン
 	void logoutRequested();
 
+	/// シーン復帰ボタン
+	void revertRequested();
+
 private:
 	void addSeparator(QVBoxLayout *layout);
 	void applyToggleStyle();
@@ -49,6 +53,7 @@ private:
 	// 状態セクション
 	QLabel *labelState_ = nullptr;
 	QLabel *labelCountdown_ = nullptr;
+	QPushButton *buttonRevert_ = nullptr;
 
 	// 制御セクション
 	QPushButton *buttonToggleEnabled_ = nullptr;

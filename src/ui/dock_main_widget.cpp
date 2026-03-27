@@ -27,13 +27,35 @@ DockMainWidget::DockMainWidget(QWidget *parent) : QWidget(parent)
 	// ========== 状態セクション ==========
 	labelState_ = new QLabel(Tr("SceneSwitcher.Status.Disabled"), this);
 	labelCountdown_ = new QLabel("", this);
-	
+
 	// カウントダウンのスペースを常に確保
 	labelCountdown_->setMinimumHeight(20);
 	labelCountdown_->setText("");  // 初期は空
-	
+
+	// シーンを戻すボタン
+	buttonRevert_ = new QPushButton(Tr("SceneSwitcher.Button.RevertNow"), this);
+	buttonRevert_->setMinimumHeight(32);
+	buttonRevert_->setVisible(false);  // 初期は非表示
+	buttonRevert_->setStyleSheet(
+		"QPushButton {"
+		"  background-color: #FF6B6B;"
+		"  color: white;"
+		"  border: none;"
+		"  border-radius: 4px;"
+		"  padding: 6px;"
+		"  font-weight: bold;"
+		"}"
+		"QPushButton:hover {"
+		"  background-color: #FF5252;"
+		"}"
+		"QPushButton:pressed {"
+		"  background-color: #E53935;"
+		"}"
+	);
+
 	mainLayout->addWidget(labelState_);
 	mainLayout->addWidget(labelCountdown_);
+	mainLayout->addWidget(buttonRevert_);
 
 	// ========== 制御セクション ==========
 	buttonToggleEnabled_ = new QPushButton(Tr("SceneSwitcher.Button.Disable"), this);
@@ -59,11 +81,13 @@ DockMainWidget::DockMainWidget(QWidget *parent) : QWidget(parent)
 
 	// シグナル接続
 	connect(buttonToggleEnabled_, &QPushButton::toggled, 
-	        this, &DockMainWidget::enableToggleRequested);
+		this, &DockMainWidget::enableToggleRequested);
 	connect(buttonSettings_, &QPushButton::clicked, 
-	        this, &DockMainWidget::settingsRequested);
+		this, &DockMainWidget::settingsRequested);
 	connect(logoutButton_, &QPushButton::clicked,
-	        this, &DockMainWidget::logoutRequested);
+		this, &DockMainWidget::logoutRequested);
+	connect(buttonRevert_, &QPushButton::clicked,
+		this, &DockMainWidget::revertRequested);
 }
 
 void DockMainWidget::addSeparator(QVBoxLayout *layout)
@@ -174,4 +198,10 @@ void DockMainWidget::setToggleEnabled(bool canToggle)
 {
 	if (buttonToggleEnabled_)
 		buttonToggleEnabled_->setEnabled(canToggle);
+}
+
+void DockMainWidget::setRevertButtonVisible(bool visible)
+{
+	if (buttonRevert_)
+		buttonRevert_->setVisible(visible);
 }
